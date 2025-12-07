@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ClickGame</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0; /* 要素の外側の余白 */
+            overflow: hidden; /* はみ出した要素を隠す、スクロールを無効化 */
+        }
+
+        /* 上：ゲーム画面（60%） */
+        #gameContainer {
+            height: 60vh;
+            position: relative;
+            background: #eef;
+        }
+
+        #btn {
+            position: absolute; /* ←これがないと動かせない */
+            padding: 20px 40px;
+            font-size: 20px;
+            cursor: pointer; /* マウスカーソルを指の形にする */
+        }
+
+        /* 下：グラフ（40%） */
+        #graphContainer {
+            height: 40vh;
+            width: 100vw;
+            padding: 10px;
+            background: #fafafa;
+            box-sizing: border-box;
+        }
+
+        #chartCanvas {
+            width: 100%; /* 親要素と同じ大きさにする */
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 上：ゲーム部分 -->
+    <div id="gameContainer">
+        <button id="btn" onclick="clicked()">クリック！</button>
+    </div>
+
+    <!-- 下：グラフ部分 -->
+    <div id="graphContainer">
+        <canvas id="chartCanvas"></canvas>
+    </div>
+
+<script>
+/* =======================
+      ゲーム（ボタンクリック）
+======================= */
+const btn = document.getElementById("btn");
+const gameContainer = document.getElementById("gameContainer");
+
+let score = 0;
+let now = Date.now();
+let lastClickTime = Date.now();
+
+// ボタンをランダム位置へ動かす関数
+function setRandomPosition() {
+    const maxX = gameContainer.clientWidth - btn.offsetWidth; /* ゲームエリアの見えている部分(border未満) - ボタン要素(border以下) */
+    const maxY = gameContainer.clientHeight - btn.offsetHeight;
+
+    const x = Math.random() * maxX; /* ボタン左端座標 */
+    const y = Math.random() * maxY; /* ボタン上端座標 */
+
+    btn.style.left = x + "px"; /* インラインCSSでスタイル「left: 〇〇px;」を指定 */
+    btn.style.top = y + "px";
+}
+
+// クリックされたらスコアアップ＋移動
+function clicked() {
+    score++;
+    lastClickTime = now;
+    setRandomPosition();
+    addScoreToGraph(score);
+}
+
+setRandomPosition(); // 最初の位置
+
+/* =======================
+      グラフ（リアルタイム更新）
+======================= */
+const ctx = document.getElementById("chartCanvas").getContext("2d");
+
+let labels = [0];
+let data = [0];
+
+const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels,
+        datasets: [{
+            label: "Click Score",
+            data,
+            borderWidth: 2
+        }]
+    },
+    options: {
+        animation: false, /* プロット追加時のアニメーション */
+        responsive: true, /* グラフ自動調整 */
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+    }
+});
+
+// スコアが変わったらグラフにも追加
+function addScoreToGraph(value) {
+    labels.push(labels.length);
+    data.push(value);
+
+    while (labels.length > 50) {
+        labels.shift(); /* リストの 「先頭」 を1つ消す */
+        data.shift();
+    }
+
+    const values = chart.data.datasets[0].data; /* 1つめのデータセットの値すべて */
+
+    chart.options.scales.y.max = Math.max(...values, 10);
+
+    chart.update();
+}
+setInterval(() => {
+    now = Date.now();
+    const elapsed = (now - lastClickTime) / 1000; // 経過秒数
+
+    // 減衰量の計算（好みで調整）
+    const decaySpeed = 0.5*Math.min(score, 100)/100; //減衰率0.5(スコア100までは減衰ポイントを軽減)
+    const decrease = elapsed * decaySpeed;
+
+    score -= decrease;
+
+    if (score < 0) score = 0;
+
+    // グラフに追加
+    addScoreToGraph(score);
+}, 100);
+
+</script>
+</body>
+</html>
