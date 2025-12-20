@@ -34,8 +34,8 @@
 
         #statusBox {
             position: absolute;
-            right: 10px; /* 親要素の右端から10px */
-            bottom: 10px; /* 親要素の下端から10px */
+            right: 10px; /* 親要素の右端から */
+            bottom: 10px; /* 親要素の下端から */
             background: rgba(255,255,255,0.8);
             padding: 8px 12px;
             border-radius: 8px;
@@ -95,10 +95,15 @@ const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
 
 let score = 0;
+let scoreVel = 0;
 let now = Date.now();
-let lastClickTime = Date.now();
+let lastClickTime = 0;
 let combo = 0;
-let comboLimit = 3000; // 3秒
+let comboLimit = 3000; // ミリ秒
+
+let gravity = 9.8;
+const frameRate = 10 // 毎秒
+let lastTime = Date.now(); // フレーム間の正確な時間測定用
 
 function updateStatus() {
     document.getElementById("scoreDisplay").textContent = "Score: " + Math.floor(score);
@@ -123,14 +128,20 @@ function setRandomPosition() {
 
 // クリックされたらスコアアップ＋移動
 function clicked() {
-    if (now - lastClickTime <= comboLimit) {
+    if (now - lastClickTime <= comboLimit || combo == 0) {
         combo++;
     }
-    score += 1 + Math.floor(combo/5);
+    // scoreVel に combo を足す (9.8以上98以下)
+    scoreVel = Math.max(
+        gravity,
+        Math.min(
+            scoreVel + Math.floor(combo/5),
+            gravity*10
+        )
+    )
     lastClickTime = now;
     updateStatus();
     setRandomPosition();
-    addScoreToGraph(score);
 }
 
 setRandomPosition(); // 最初の位置
@@ -223,25 +234,26 @@ function drawComboGauge() {
 
 setInterval(() => {
     now = Date.now();
-    const elapsed = (now - lastClickTime) / 1000; // 経過秒数
-
+    const deltaTime = (now - lastTime) / 1000; // 秒
+    lastTime = now;
     if (now - lastClickTime > comboLimit) {
         combo = 0;
     }
 
-    // 減衰量の計算（好みで調整）
-    const decaySpeed = 0.5*Math.min(score, 100)/100; //減衰率0.5(スコア100までは減衰ポイントを軽減)
-    const decrease = elapsed * decaySpeed;
+    // 減衰量の計算
+    scoreVel -= gravity * deltaTime;
+    score += scoreVel * deltaTime;
 
-    score -= decrease;
-
-    if (score < 0) score = 0;
+    if (score <= 0) {
+        score = 0;
+        scoreVel = 0;
+    }
 
     updateStatus();
     // グラフに追加
     addScoreToGraph(score);
     drawComboGauge();
-}, 100);
+}, 1000/frameRate);
 
 </script>
 </body>
