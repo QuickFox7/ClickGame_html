@@ -16,6 +16,7 @@
             height: 60vh;
             position: relative;
             background: #eef;
+            overflow: hidden;
         }
 
         #btn {
@@ -32,6 +33,25 @@
             height: 100px;
         }
 
+        .flyClone{
+            position: absolute;
+            width: 100px;
+            height: 100px;
+        }
+
+        .cat-paw {
+            position: absolute;
+            width: 120px;
+            height: 960px;
+            z-index: 5; /* 重なり順(UIの後ろ) */
+            pointer-events: none; /* クリックを邪魔しない */
+            transform: translate(-50%, -50%); /* 指定座標に中心寄せ */
+            opacity: 0; /* 透明度(0 or 1) */
+            transition: 
+                opacity 0.4s ease, /* 透明度変更を 0.4 秒, ふわっと */
+                transform 0.4s ease;
+        }
+
         #statusBox {
             position: absolute;
             right: 10px; /* 親要素の右端から */
@@ -41,6 +61,7 @@
             border-radius: 8px;
             text-align: right;
             align-items: center;
+            z-index: 10; /* 重なり順(最前面) */
             pointer-events: none; /* ←クリックを邪魔しない */
             font-size: 18px;
         }
@@ -126,8 +147,53 @@ function setRandomPosition() {
     btn.style.top = y + "px";
 }
 
+function showCatPaw(x, y) {
+    const flyClone = document.createElement("img")
+    flyClone.src = "realisticFly.png";
+    flyClone.className = "flyClone";
+    const paw = document.createElement("img");
+    paw.src = "catHand.png";
+    paw.className = "cat-paw";
+
+    const distance = 40;
+
+    // 0 ~ 2π rad
+    const angle = Math.random() * Math.PI * 2; /* 右が 0 rad */
+
+    // 距離1を2軸に分解し、距離をかける
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance;
+
+    paw.style.left = x + "px";
+    paw.style.top = y + "px";
+    paw.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${angle - Math.PI/2}rad)`;
+    flyClone.style.left = x + "px";
+    flyClone.style.top = y + "px";
+    flyClone.style.transform = `translate(-50%, -50%)`;
+
+    gameContainer.appendChild(flyClone);
+    gameContainer.appendChild(paw);
+
+    requestAnimationFrame(() => {
+        paw.style.opacity = 1;
+        paw.style.transform = `translate(-50%, -50%) rotate(${angle - Math.PI/2}rad)`;
+    });
+
+    // 少し待ってフェードアウト
+    setTimeout(() => paw.style.opacity = 0, 400);
+
+    // 完全に消す
+    setTimeout(() => flyClone.remove(), 400)
+    setTimeout(() => paw.remove(), 800);
+}
+
 // クリックされたらスコアアップ＋移動
 function clicked() {
+    showCatPaw(
+        btn.offsetLeft + btn.offsetWidth / 2,
+        btn.offsetTop + btn.offsetHeight / 2
+    );
+
     if (now - lastClickTime <= comboLimit || combo == 0) {
         combo++;
     }
