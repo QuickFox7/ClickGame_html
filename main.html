@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>ClickGame</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body {
@@ -83,18 +82,21 @@
             height: 60px;
         }
 
-        /* 下：グラフ（40%） */
-        #graphContainer {
+        /* 下：flappy（40%） */
+        #flappyContainer {
+            position: relative;
             height: 40vh;
             width: 100vw;
-            padding: 10px;
+            overflow: hidden;
             background: #fafafa;
-            box-sizing: border-box;
         }
-
-        #chartCanvas {
-            width: 100%; /* 親要素と同じ大きさにする */
-            height: 100%;
+        #flappyChar {
+            position: absolute;
+            height: 120px;
+            width: auto;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
@@ -114,8 +116,9 @@
     </div>
 
     <!-- 下：グラフ部分 -->
-    <div id="graphContainer">
-        <canvas id="chartCanvas"></canvas>
+    <div id="flappyContainer">
+        <div id="bg"></div>
+        <img id="flappyChar" src="rocket-red.png">
     </div>
 
 <script>
@@ -126,12 +129,14 @@ const btn = document.getElementById("btn");
 const gameContainer = document.getElementById("gameContainer");
 const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
+const flappyChar = document.getElementById("flappyChar");
 
 let score = 0;
 let scoreVel = 0;
 let lastClickTime = 0;
 let combo = 0;
 let comboLimit = 3000; // ミリ秒
+let flappyAngle = 0;
 
 let gravity = 9.8;
 const frameRate = 10 // 毎秒
@@ -259,58 +264,6 @@ function clicked() {
 
 setRandomPosition(); // 最初の位置
 
-/* =======================
-      グラフ（リアルタイム更新）
-======================= */
-const ctx = document.getElementById("chartCanvas").getContext("2d");
-
-let labels = [0];
-let data = [0];
-
-const chart = new Chart(ctx, {
-    type: "line",
-    data: {
-        labels,
-        datasets: [{
-            label: "Click Score",
-            data,
-            borderWidth: 2
-        }]
-    },
-    options: {
-        animation: false, /* プロット追加時のアニメーション */
-        responsive: true, /* グラフ自動調整 */
-        maintainAspectRatio: false,
-        scales: { 
-            x: {
-                ticks: {
-                    display: false // ★ 横軸の数字を非表示
-                }
-            },
-            y: { 
-                beginAtZero: true 
-            } 
-        }
-    }
-});
-
-// スコアが変わったらグラフにも追加
-function addScoreToGraph(value) {
-    labels.push(labels.length);
-    data.push(value);
-
-    while (labels.length > 50) {
-        labels.shift(); /* リストの 「先頭」 を1つ消す */
-        data.shift();
-    }
-
-    const values = chart.data.datasets[0].data; /* 1つめのデータセットの値すべて */
-
-    chart.options.scales.y.max = Math.max(...values, 10);
-
-    chart.update();
-}
-
 function drawComboGauge() {
     const now = Date.now();
     const elapsed = now - lastClickTime;
@@ -345,6 +298,20 @@ function drawComboGauge() {
     gctx.stroke();
 }
 
+function rotateFlappyChar(scoreVel, deltaTime) {
+    const targetAngle = Math.max(
+        -25,
+        Math.min(scoreVel * -3, 90)
+    );
+
+    // deltaTime を使って角度をなめらかに追従
+    const followSpeed = 10; // 大きいほどキビキビ
+    flappyAngle += (targetAngle - flappyAngle) * followSpeed * deltaTime;
+
+    flappyChar.style.transform =
+        `translate(-50%, -50%) rotate(${flappyAngle + 90}deg)`;
+}
+
 setInterval(() => {
     const now = Date.now();
     const deltaTime = (now - lastTime) / 1000; // 秒
@@ -363,9 +330,8 @@ setInterval(() => {
     }
 
     updateStatus();
-    // グラフに追加
-    addScoreToGraph(score);
     drawComboGauge();
+    rotateFlappyChar(scoreVel, deltaTime);
 }, 1000/frameRate);
 
 </script>
