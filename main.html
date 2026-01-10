@@ -122,25 +122,24 @@
     </div>
 
 <script>
-/* =======================
-      ゲーム（ボタンクリック）
-======================= */
+
 const btn = document.getElementById("btn");
 const gameContainer = document.getElementById("gameContainer");
 const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
 const flappyChar = document.getElementById("flappyChar");
 
+let gravity = 9.8;
+const frameRate = 10 // 毎秒
+let lastTime = Date.now(); // フレーム間の正確な時間測定用
+
 let score = 0;
-let scoreVel = 0;
+let scoreVel = 0; // score increase per second
+let flappyVelX = 0;
 let lastClickTime = 0;
 let combo = 0;
 let comboLimit = 3000; // ミリ秒
 let flappyAngle = 0;
-
-let gravity = 9.8;
-const frameRate = 10 // 毎秒
-let lastTime = Date.now(); // フレーム間の正確な時間測定用
 
 function updateStatus() {
     document.getElementById("scoreDisplay").textContent = "Score: " + Math.floor(score);
@@ -299,17 +298,11 @@ function drawComboGauge() {
 }
 
 function rotateFlappyChar(scoreVel, deltaTime) {
-    const targetAngle = Math.max(
-        -25,
-        Math.min(scoreVel * -3, 90)
-    );
-
-    // deltaTime を使って角度をなめらかに追従
-    const followSpeed = 10; // 大きいほどキビキビ
-    flappyAngle += (targetAngle - flappyAngle) * followSpeed * deltaTime;
+    flappyVelX = 15
+    flappyAngle = Math.atan2(scoreVel, flappyVelX)
 
     flappyChar.style.transform =
-        `translate(-50%, -50%) rotate(${flappyAngle + 90}deg)`;
+        `translate(-50%, -50%) rotate(${-flappyAngle + Math.PI/2}rad)`;
 }
 
 setInterval(() => {
