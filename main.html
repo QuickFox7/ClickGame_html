@@ -90,6 +90,24 @@
             overflow: hidden;
             background: #fafafa;
         }
+        #flappyBgSpace {
+            position: absolute;
+            inset: 0; /* 親要素いっぱい */
+            background:hsl(240, 100%, 20%);
+            z-index: 0;
+        }
+        #flappyBgSky {
+            position: absolute;
+            inset: 0; /* 親要素いっぱい */
+            background: linear-gradient(
+                to bottom, /* 上から下へのグラデーション */
+                #1b1b2f 0%,
+                #4b6cb7 40%,
+                #87ceeb 70%,
+                #cce6ff 100%
+            );
+            z-index: 1;
+        }
         #flappyChar {
             position: absolute;
             height: 120px;
@@ -97,6 +115,7 @@
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
+            z-index: 10;
         }
         #flappyGround {
             position: absolute;
@@ -105,6 +124,7 @@
             width: 100%;
             height: 2px;        /* 線なので細く */
             background: #333;
+            z-index: 5;
         }
     </style>
 </head>
@@ -125,6 +145,8 @@
 
     <!-- 下：グラフ部分 -->
     <div id="flappyContainer">
+        <div id="flappyBgSpace"></div>
+        <div id="flappyBgSky"></div>
         <img id="flappyChar" src="rocket-red.png">
         <div id="flappyGround"></div>
     </div>
@@ -135,6 +157,8 @@ const btn = document.getElementById("btn");
 const gameContainer = document.getElementById("gameContainer");
 const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
+const flappyContainer = document.getElementById("flappyContainer")
+const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
 const flappyGround = document.getElementById("flappyGround")
 
@@ -145,10 +169,21 @@ let lastTime = Date.now(); // フレーム間の正確な時間測定用
 let score = 0;
 let scoreVel = 0; // score increase per second
 let flappyVelX = 0;
+const FLAPPY_PX_PER_UNIT = 80; // フラッピーゾーン独自の長さをpxに変換
 let lastClickTime = 0;
 let combo = 0;
 let comboLimit = 3000; // ミリ秒
 let flappyAngle = 0;
+const altitudeAndColor = [
+    [0, [200, 80, 85, 100]], // h,s,l,a
+    [75, [205, 70, 75, 100]],
+    [150, [215, 60, 65, 100]],
+    [250, [230, 55, 50, 100]],
+    [325, [245, 65, 40, 100]],
+    [400, [255, 80, 30, 100]],
+    [500, [240, 100, 20, 1]]
+]
+let flappyCameraZoom = 0;
 
 function updateStatus() {
     document.getElementById("scoreDisplay").textContent = "Score: " + Math.floor(score);
@@ -307,15 +342,29 @@ function drawComboGauge() {
 }
 
 function rotateFlappyChar(scoreVel, deltaTime) {
-    flappyVelX = 15
+    flappyVelX = 10
     flappyAngle = Math.atan2(scoreVel, flappyVelX)
 
     flappyChar.style.transform =
         `translate(-50%, -50%) rotate(${-flappyAngle + Math.PI/2}rad)`;
 }
 
+function updateBackground(score) {
+    const camHeight = flappyContainer.getBoundingClientRect().height / FLAPPY_PX_PER_UNIT;
+    const camMin = score - camHeight / 2;
+
+    const stops = altitudeAndColor.map(([alt, [h, s, l, a]]) => {
+        const pos = (alt - camMin) / camHeight * 100;
+        return `hsla(${h}, ${s}%, ${l}%, ${a}) ${pos}%`;
+    });
+
+    flappyBgSky.style.background =
+        `linear-gradient(to top, ${stops.join(",")})`;
+}
+
+
 function drawFlappyGround(score) {
-    flappyGround.style.transform = `translate(0, calc(${score} * 80px))`;
+    flappyGround.style.transform = `translate(0, calc(${score * FLAPPY_PX_PER_UNIT}px))`;
 }
 
 setInterval(() => {
@@ -338,6 +387,7 @@ setInterval(() => {
     updateStatus();
     drawComboGauge();
     rotateFlappyChar(scoreVel, deltaTime);
+    updateBackground(score);
     drawFlappyGround(score);
 }, 1000/frameRate);
 
