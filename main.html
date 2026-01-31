@@ -119,7 +119,7 @@
         }
         #flappyGround {
             position: absolute;
-            top: calc(50% + 40px);       /* 地面の高さ */
+            top: 50%;       /* 地面の高さ */
             left: 0;
             width: 100%;
             height: 2px;        /* 線なので細く */
@@ -183,7 +183,15 @@ const altitudeAndColor = [
     [400, [255, 80, 30, 100]],
     [500, [240, 100, 20, 1]]
 ]
-let flappyCameraZoom = 0;
+let flappyCameraZoom = 1; // 2 → 2倍ズームイン
+
+// ズームアニメーション
+let zoomFrom = 1; // 倍率
+let zoomTo = 1; // 倍率
+let zoomTimer = 0; // 経過時間
+let zoomDuration = 0; // 所要時間sec
+let zoomHoldingTimer = 0; // 
+let zoomHoldingDuration = 0; // ズーム完了から戻り始めるまでの時間sec
 
 function updateStatus() {
     document.getElementById("scoreDisplay").textContent = "Score: " + Math.floor(score);
@@ -276,6 +284,31 @@ function showCatPaw(x, y) {
     setTimeout(() => paw.remove(), 800);
 }
 
+function startZoom(from, to, duration) {
+    zoomFrom = from;
+    zoomTo = to;
+    zoomTimer = 0;
+    zoomDuration = duration;
+}
+function updateZoom(deltaTime) {
+    if (zoomTimer < zoomDuration) {
+        zoomTimer += deltaTime;
+        const t = Math.min(zoomTimer / zoomDuration, 1);
+
+        // easeOut（最初速い→最後遅い）
+        const eased = 1 - Math.pow(1 - t, 3);
+
+        flappyCameraZoom =
+            zoomFrom * (1 - eased) +
+            zoomTo * eased;
+    } else if (zoomHoldingTimer < zoomHoldingDuration) {
+        zoomHoldingTimer += deltaTime;
+        if (zoomHoldingTimer >= zoomHoldingDuration) {
+            startZoom(flappyCameraZoom, 1.0, 1.0);
+        }
+    }
+}
+
 // クリックされたらスコアアップ＋移動
 function clicked() {
     const now = Date.now();
@@ -300,9 +333,17 @@ function clicked() {
             gravity*10
         )
     )
+
     lastClickTime = now;
     updateStatus();
     setRandomPosition();
+
+    // 0.15秒でズームアウト
+    startZoom(flappyCameraZoom, 0.75, 0.15);
+
+    zoomHoldingTimer = 0;
+    zoomHoldingDuration = 0.15 + 0.3*(gravity + Math.floor(combo/5))/gravity;
+    // ズームを元に戻す処理は updateZoom()
 }
 
 setRandomPosition(); // 最初の位置
@@ -346,11 +387,11 @@ function rotateFlappyChar(scoreVel, deltaTime) {
     flappyAngle = Math.atan2(scoreVel, flappyVelX)
 
     flappyChar.style.transform =
-        `translate(-50%, -50%) rotate(${-flappyAngle + Math.PI/2}rad)`;
+        `translate(-50%, -50%) scale(${flappyCameraZoom}, ${flappyCameraZoom}) rotate(${-flappyAngle + Math.PI/2}rad)`;
 }
 
 function updateBackground(score) {
-    const camHeight = flappyContainer.getBoundingClientRect().height / FLAPPY_PX_PER_UNIT;
+    const camHeight = flappyContainer.getBoundingClientRect().height / FLAPPY_PX_PER_UNIT * (1 / flappyCameraZoom);
     const camMin = score - camHeight / 2;
 
     const stops = altitudeAndColor.map(([alt, [h, s, l, a]]) => {
@@ -364,7 +405,8 @@ function updateBackground(score) {
 
 
 function drawFlappyGround(score) {
-    flappyGround.style.transform = `translate(0, calc(${score * FLAPPY_PX_PER_UNIT}px))`;
+    flappyGround.style.transform = 
+        `translate(0, calc(${flappyChar.getBoundingClientRect().height / 2 + score * FLAPPY_PX_PER_UNIT * (1 / flappyCameraZoom)}px))`;
 }
 
 setInterval(() => {
@@ -386,6 +428,8 @@ setInterval(() => {
 
     updateStatus();
     drawComboGauge();
+
+    updateZoom(deltaTime);
     rotateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
     drawFlappyGround(score);
