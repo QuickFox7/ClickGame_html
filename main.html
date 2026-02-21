@@ -19,17 +19,10 @@
         }
 
         #btn {
-            position: absolute; /* ←これがないと動かせない */
-            padding: 0px 0px;
-            font-size: 20px;
-            cursor: pointer; /* マウスカーソルを指の形にする */
-            background: transparent; /* 背景を透明に */
-            border: none;             /* 枠線を消す */
-        }
-
-        button img {
+            position: absolute;
             width: 100px;
             height: 100px;
+            cursor: pointer;
         }
 
         .flyClone{
@@ -126,6 +119,19 @@
             background: #333;
             z-index: 5;
         }
+        #flappyWind {
+            position: absolute;
+            inset: 0; /* 親要素いっぱい */
+            pointer-events: none;
+            z-index: 9; /* キャラの少し後ろ */
+        }
+        .windLine {
+            position: absolute;
+            width: 60px;
+            height: 2px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 2px;
+        }
     </style>
 </head>
 
@@ -133,9 +139,7 @@
 
     <!-- 上：ゲーム部分 -->
     <div id="gameContainer">
-        <button id="btn", onclick="clicked()">
-            <img src="realisticFly.png" alt="ハエ">
-        </button>
+        <img id="btn" src="realisticFly.png">
         <div id="statusBox">
             <canvas id="comboGauge" width="60" height="60"></canvas>
             <div id="scoreDisplay">Score: 0</div>
@@ -143,17 +147,19 @@
         </div>
     </div>
 
-    <!-- 下：グラフ部分 -->
+    <!-- 下：フラッピーゾーン -->
     <div id="flappyContainer">
         <div id="flappyBgSpace"></div>
         <div id="flappyBgSky"></div>
         <img id="flappyChar" src="rocket-red.png">
         <div id="flappyGround"></div>
+        <div id="flappyWind"></div>
     </div>
 
 <script>
 
 const btn = document.getElementById("btn");
+btn.addEventListener("click", clicked);
 const gameContainer = document.getElementById("gameContainer");
 const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
@@ -161,6 +167,7 @@ const flappyContainer = document.getElementById("flappyContainer")
 const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
 const flappyGround = document.getElementById("flappyGround")
+const flappyWind = document.getElementById("flappyWind");
 
 let gravity = 9.8;
 const frameRate = 60 // 毎秒
@@ -192,6 +199,58 @@ let zoomTimer = 0; // 経過時間
 let zoomDuration = 0; // 所要時間sec
 let zoomHoldingTimer = 0; // 
 let zoomHoldingDuration = 0; // ズーム完了から戻り始めるまでの時間sec
+
+const windList = [];
+
+function spawnWind(scoreVel,deltaTime) {
+    if (scoreVel === 0) return;
+
+    const power = Math.abs(scoreVel);
+
+    const spawnRate = Math.min(12*power, 600); // 1秒あたりの本数
+    const count = Math.floor(spawnRate*deltaTime); // 1フレームあたりの本数
+    for (let i = 0; i < count; i++) {
+        const line = document.createElement("div");
+        line.className = "windLine";
+
+        const W = flappyContainer.clientWidth;
+        const H = flappyContainer.clientHeight;
+        const maxRange = Math.sqrt(W*W + H*H); // エリアの対角線の長さ
+        const extraX = (maxRange - W) / 2;
+        const extraY = (maxRange - H) / 2;
+        const x = Math.random() * maxRange - extraX;
+        const y = Math.random() * maxRange - extraY;
+        const duration = 0.5;
+
+        line.style.left = x + "px";
+        line.style.top = y + "px";
+        line.style.width = `${power * 10}px`;
+
+        flappyWind.appendChild(line);
+        windList.push({el:line, ox:0, t:0, d:duration}) // element, offsetX(移動量), timer(sec), duration(sec)
+    }
+}
+
+function updateWind(scoreVel, deltaTime) {
+    for (let i = windList.length - 1; i >= 0; i--) {
+        const w = windList[i];
+
+        w.ox -= Math.abs(scoreVel * deltaTime * FLAPPY_PX_PER_UNIT);
+        w.t += deltaTime;
+
+        w.el.style.transform = `translateX(${w.ox}px)`;
+        w.el.style.width = `${Math.abs(scoreVel) * 10}px`;
+        w.el.style.opacity = Math.max(0, 
+            1 - Math.abs(w.t - w.d/2) / (w.d/2)
+        ); // 透明度が、0 → 1 → 0
+
+        if (w.t >= w.d) {
+            w.el.remove();
+            windList.splice(i, 1);
+        }
+    }
+    flappyWind.style.transform = `rotate(${-flappyAngle}rad)`;
+}
 
 function updateStatus() {
     document.getElementById("scoreDisplay").textContent = "Score: " + Math.floor(score);
@@ -304,6 +363,7 @@ function updateZoom(deltaTime) {
     } else if (zoomHoldingTimer < zoomHoldingDuration) {
         zoomHoldingTimer += deltaTime;
         if (zoomHoldingTimer >= zoomHoldingDuration) {
+            zoomHoldingTimer = zoomHoldingDuration;
             startZoom(flappyCameraZoom, 1.0, 1.0);
         }
     }
@@ -329,7 +389,7 @@ function clicked() {
     scoreVel = Math.max(
         gravity,
         Math.min(
-            scoreVel + Math.floor(combo/5),
+            scoreVel + Math.floor(Math.pow(combo, 1/10)*9.8),
             gravity*10
         )
     )
@@ -433,6 +493,8 @@ setInterval(() => {
     rotateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
     drawFlappyGround(score);
+    spawnWind(scoreVel, deltaTime);
+    updateWind(scoreVel, deltaTime);
 }, 1000/frameRate);
 
 </script>
