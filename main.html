@@ -213,7 +213,7 @@ function spawnWind(scoreVel,deltaTime) {
 
     const power = Math.abs(scoreVel);
 
-    const spawnRate = Math.min(12*power, 600); // 1秒あたりの本数
+    const spawnRate = Math.min(12*power, 600) / (flappyCameraZoom**2); // 1秒あたりの本数
     const count = Math.floor(spawnRate*deltaTime); // 1フレームあたりの本数
     for (let i = 0; i < count; i++) {
         const line = document.createElement("div");
@@ -221,7 +221,7 @@ function spawnWind(scoreVel,deltaTime) {
 
         const W = flappyContainer.clientWidth;
         const H = flappyContainer.clientHeight;
-        const maxRange = Math.sqrt(W*W + H*H); // エリアの対角線の長さ
+        const maxRange = Math.sqrt(W*W + H*H) / flappyCameraZoom; // エリアの対角線の長さ
         const extraX = (maxRange - W) / 2;
         const extraY = (maxRange - H) / 2;
         const x = Math.random() * maxRange - extraX;
@@ -241,7 +241,7 @@ function updateWind(scoreVel, deltaTime) {
     for (let i = windList.length - 1; i >= 0; i--) {
         const w = windList[i];
 
-        w.ox -= Math.abs(scoreVel * deltaTime * FLAPPY_PX_PER_UNIT);
+        w.ox -= Math.abs(scoreVel * deltaTime * FLAPPY_PX_PER_UNIT) / flappyCameraZoom;
         w.t += deltaTime;
 
         w.el.style.transform = `translateX(${w.ox}px)`;
@@ -255,7 +255,7 @@ function updateWind(scoreVel, deltaTime) {
             windList.splice(i, 1);
         }
     }
-    flappyWind.style.transform = `rotate(${-flappyAngle}rad)`;
+    flappyWind.style.transform = `scale(${flappyCameraZoom}, ${flappyCameraZoom}) rotate(${-flappyAngle}rad)`;
 }
 
 function updateStatus() {
