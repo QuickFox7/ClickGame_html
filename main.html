@@ -8,6 +8,12 @@
         body {
             margin: 0; /* 要素の外側の余白 */
             overflow: hidden; /* はみ出した要素を隠す、スクロールを無効化 */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        img {
+            -webkit-user-drag: none;
         }
 
         /* 上：ゲーム画面（60%） */
@@ -442,7 +448,7 @@ function drawComboGauge() {
     gctx.stroke();
 }
 
-function rotateFlappyChar(scoreVel, deltaTime) {
+function updateFlappyChar(scoreVel, deltaTime) {
     flappyVelX = 10
     flappyAngle = Math.atan2(scoreVel, flappyVelX)
 
@@ -490,7 +496,7 @@ setInterval(() => {
     drawComboGauge();
 
     updateZoom(deltaTime);
-    rotateFlappyChar(scoreVel, deltaTime);
+    updateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
     drawFlappyGround(score);
     spawnWind(scoreVel, deltaTime);
