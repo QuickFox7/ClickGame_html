@@ -95,6 +95,12 @@
             background:hsl(240, 100%, 20%);
             z-index: 0;
         }
+        #flappyStars {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
         #flappyBgSky {
             position: absolute;
             inset: 0; /* 親要素いっぱい */
@@ -105,7 +111,7 @@
                 #87ceeb 70%,
                 #cce6ff 100%
             );
-            z-index: 1;
+            z-index: 2;
         }
         #flappyChar {
             position: absolute;
@@ -156,6 +162,7 @@
     <!-- 下：フラッピーゾーン -->
     <div id="flappyContainer">
         <div id="flappyBgSpace"></div>
+        <canvas id="flappyStars"></canvas>
         <div id="flappyBgSky"></div>
         <img id="flappyChar" src="rocket-red.png">
         <div id="flappyGround"></div>
@@ -174,6 +181,29 @@ const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
 const flappyGround = document.getElementById("flappyGround")
 const flappyWind = document.getElementById("flappyWind");
+const starCanvas = document.getElementById("flappyStars");
+const sctx = starCanvas.getContext("2d");
+
+function resizeStars() {
+    starCanvas.width = flappyContainer.clientWidth;
+    starCanvas.height = flappyContainer.clientHeight;
+}
+resizeStars();
+window.addEventListener("resize", resizeStars);
+
+const STAR_COUNT = 1000;
+
+const stars = Array.from({ length: STAR_COUNT }, () => {
+    const b = Math.random() * 0.6 + 0.4;
+    return {
+        x: Math.random(),
+        y: Math.random(),
+        r: Math.random() * 2.5 + 0.1,
+        brightness: b,
+        phase: Math.random() * Math.PI * 2,
+        speed: 15 * b
+    };
+});
 
 let gravity = 9.8;
 const frameRate = 60 // 毎秒
@@ -188,13 +218,13 @@ let combo = 0;
 let comboLimit = 3000; // ミリ秒
 let flappyAngle = 0;
 const altitudeAndColor = [
-    [0, [200, 80, 85, 100]], // h,s,l,a
-    [75, [205, 70, 75, 100]],
-    [150, [215, 60, 65, 100]],
-    [250, [230, 55, 50, 100]],
-    [325, [245, 65, 40, 100]],
-    [400, [255, 80, 30, 100]],
-    [500, [240, 100, 20, 1]]
+    [0, [200, 80, 85, 1]], // h,s,l,a
+    [150, [205, 70, 75, 0.9]],
+    [300, [215, 60, 65, 0.7]],
+    [500, [230, 55, 50, 0.5]],
+    [650, [245, 65, 40, 0.3]],
+    [800, [255, 80, 30, 0.1]],
+    [1000, [240, 100, 20, 0]]
 ]
 let flappyCameraZoom = 1; // 2 → 2倍ズームイン
 
@@ -213,7 +243,7 @@ function spawnWind(scoreVel,deltaTime) {
 
     const power = Math.abs(scoreVel);
 
-    const spawnRate = Math.min(12*power, 600) / (flappyCameraZoom**2); // 1秒あたりの本数
+    const spawnRate = Math.min(12*power, 600); // 1秒あたりの本数
     const count = Math.floor(spawnRate*deltaTime); // 1フレームあたりの本数
     for (let i = 0; i < count; i++) {
         const line = document.createElement("div");
@@ -221,7 +251,7 @@ function spawnWind(scoreVel,deltaTime) {
 
         const W = flappyContainer.clientWidth;
         const H = flappyContainer.clientHeight;
-        const maxRange = Math.sqrt(W*W + H*H) / flappyCameraZoom; // エリアの対角線の長さ
+        const maxRange = Math.sqrt(W*W + H*H); // エリアの対角線の長さ
         const extraX = (maxRange - W) / 2;
         const extraY = (maxRange - H) / 2;
         const x = Math.random() * maxRange - extraX;
@@ -241,7 +271,7 @@ function updateWind(scoreVel, deltaTime) {
     for (let i = windList.length - 1; i >= 0; i--) {
         const w = windList[i];
 
-        w.ox -= Math.abs(scoreVel * deltaTime * FLAPPY_PX_PER_UNIT) / flappyCameraZoom;
+        w.ox -= Math.abs(scoreVel * deltaTime * FLAPPY_PX_PER_UNIT);
         w.t += deltaTime;
 
         w.el.style.transform = `translateX(${w.ox}px)`;
@@ -255,7 +285,7 @@ function updateWind(scoreVel, deltaTime) {
             windList.splice(i, 1);
         }
     }
-    flappyWind.style.transform = `scale(${flappyCameraZoom}, ${flappyCameraZoom}) rotate(${-flappyAngle}rad)`;
+    flappyWind.style.transform = `rotate(${-flappyAngle}rad)`;
 }
 
 function updateStatus() {
@@ -469,6 +499,35 @@ function updateBackground(score) {
         `linear-gradient(to top, ${stops.join(",")})`;
 }
 
+function drawStars(deltaTime) {
+    sctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+
+    const atmosphere = Math.max(1 - score / 1200, 0); // 地上:1, 宇宙:0
+
+    for (const star of stars) {
+        // 位相だけ進める（位置は変えない）
+        star.phase += deltaTime * star.speed;
+        const base = star.brightness;
+
+        const twinkle =
+            Math.sin(star.phase) * 0.5 + 0.5;
+
+        const alpha =
+            base * (1 - atmosphere)
+            + base * atmosphere * twinkle;
+
+        sctx.beginPath();
+        sctx.arc(
+            star.x * starCanvas.width,
+            star.y * starCanvas.height,
+            star.r,
+            0,
+            Math.PI * 2
+        );
+        sctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        sctx.fill();
+    }
+}
 
 function drawFlappyGround(score) {
     flappyGround.style.transform = 
@@ -498,6 +557,7 @@ setInterval(() => {
     updateZoom(deltaTime);
     updateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
+    drawStars(deltaTime);
     drawFlappyGround(score);
     spawnWind(scoreVel, deltaTime);
     updateWind(scoreVel, deltaTime);
