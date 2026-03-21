@@ -137,6 +137,35 @@
             pointer-events: none;
             z-index: 9; /* キャラの少し後ろ */
         }
+        #flappyBestLine{
+            position:absolute;
+            left:0;
+            width:100%;
+            height:2px;
+            background:#ff4444;
+            z-index:6;
+            pointer-events:none;
+        }
+        #flappyBestLabel{
+            position:absolute;
+
+            left:60%;                 /* 中央より少し右 */
+            transform:translate(-50%,-50%);
+
+            background:rgba(255,80,80,0.9);
+            color:white;
+
+            padding:4px 10px;
+            border-radius:12px;       /* 丸み */
+
+            font-size:14px;
+            font-weight:bold;
+
+            z-index:7;
+            pointer-events:none;
+
+            white-space:nowrap;
+        }
     </style>
 </head>
 
@@ -160,6 +189,8 @@
         <img id="flappyChar" src="rocket-red.png">
         <div id="flappyGround"></div>
         <canvas id="flappyWind"></canvas>
+        <div id="flappyBestLine"></div>
+        <div id="flappyBestLabel">ベストスコア</div>
     </div>
 
 <script>
@@ -173,6 +204,8 @@ const flappyContainer = document.getElementById("flappyContainer")
 const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
 const flappyGround = document.getElementById("flappyGround")
+const bestLine = document.getElementById("flappyBestLine");
+const bestLabel = document.getElementById("flappyBestLabel")
 
 const windCanvas = document.getElementById("flappyWind");
 const wctx = windCanvas.getContext("2d");
@@ -211,6 +244,7 @@ const frameRate = 60 // 毎秒
 let lastTime = Date.now(); // フレーム間の正確な時間測定用
 
 let score = 0;
+let bestScore = 0;
 let scoreVel = 0; // score increase per second
 let flappyVelX = 0;
 const FLAPPY_PX_PER_UNIT = 80; // フラッピーゾーン独自の長さをpxに変換
@@ -548,6 +582,21 @@ function drawFlappyGround(score) {
         `translate(0, calc(${flappyChar.getBoundingClientRect().height / 2 + score * FLAPPY_PX_PER_UNIT * (1 / flappyCameraZoom)}px))`;
 }
 
+function drawBestLine() {
+
+    const diff = bestScore - score;
+
+    const y =
+        diff *
+        FLAPPY_PX_PER_UNIT *
+        (1 / flappyCameraZoom);
+
+    bestLine.style.top = "50%";
+    bestLine.style.transform = `translateY(${-y}px)`;
+    
+    bestLabel.style.top = `calc(50% - ${y}px)`;
+}
+
 setInterval(() => {
     const now = Date.now();
     const deltaTime = (now - lastTime) / 1000; // 秒
@@ -564,6 +613,9 @@ setInterval(() => {
         score = 0;
         scoreVel = 0;
     }
+    if (score > bestScore) {
+        bestScore = score;
+    }
 
     updateStatus();
     drawComboGauge();
@@ -573,6 +625,7 @@ setInterval(() => {
     updateBackground(score);
     drawStars(deltaTime);
     drawFlappyGround(score);
+    drawBestLine();
     spawnWind(scoreVel, deltaTime);
     drawWind(scoreVel, deltaTime);
 }, 1000/frameRate);
