@@ -24,7 +24,7 @@
             overflow: hidden;
         }
 
-        #btn {
+        #fly {
             position: absolute;
             width: 100px;
             height: 100px;
@@ -221,7 +221,7 @@
 
     <!-- 上：ゲーム部分 -->
     <div id="gameContainer">
-        <img id="btn" src="realisticFly.png">
+        <img id="fly" src="realisticFly.png">
         <div id="statusBox">
             <canvas id="comboGauge" width="60" height="60"></canvas>
             <div id="scoreDisplay">Score: 0</div>
@@ -246,8 +246,18 @@
 
 <script>
 
-const btn = document.getElementById("btn");
-btn.addEventListener("click", clicked);
+const fly = document.getElementById("fly");
+const flies = [];
+flies.push({
+    x: 0,
+    y: 0,
+    el: fly
+});
+for (const flyObj of flies) {
+    flyObj.el.addEventListener("click", () => {
+        clicked(flyObj);
+    });
+}
 const gameContainer = document.getElementById("gameContainer");
 const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
@@ -397,19 +407,22 @@ function updateStatus() {
 }
 
 // ボタンをランダム位置へ動かす関数
-function setRandomPosition() {
+function setRandomPosition(flyObj) {
     const box = document.getElementById("statusBox");
     const boxW = box.offsetWidth;
     const boxH = box.offsetHeight;
 
-    const maxX = gameContainer.clientWidth - btn.offsetWidth - boxW - 10;
-    const maxY = gameContainer.clientHeight - btn.offsetHeight - boxH - 10;
+    const maxX = gameContainer.clientWidth - flyObj.el.offsetWidth - boxW - 10;
+    const maxY = gameContainer.clientHeight - flyObj.el.offsetHeight - boxH - 10;
 
-    const x = Math.random() * maxX; /* ボタン左端座標 */
-    const y = Math.random() * maxY; /* ボタン上端座標 */
+    const x = Math.random() * maxX;
+    const y = Math.random() * maxY;
 
-    btn.style.left = x + "px"; /* インラインCSSでスタイル「left: 〇〇px;」を指定 */
-    btn.style.top = y + "px";
+    flyObj.x = x;
+    flyObj.y = y;
+
+    flyObj.el.style.left = x + "px"; /* インラインCSSでスタイル「left: 〇〇px;」を指定 */
+    flyObj.el.style.top = y + "px";
 }
 
 function showComboText(x, y, combo) {
@@ -509,18 +522,31 @@ function updateZoom(deltaTime) {
 }
 
 // クリックされたらスコアアップ＋移動
-function clicked() {
+function clicked(flyObj) {
     const now = Date.now();
     showComboText(
-        btn.offsetLeft + btn.offsetWidth / 2,
-        btn.offsetTop + btn.offsetHeight / 2,
+        flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
+        flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
         combo
     )
     showCatPaw(
-        btn.offsetLeft + btn.offsetWidth / 2,
-        btn.offsetTop + btn.offsetHeight / 2
+        flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
+        flyObj.el.offsetTop + flyObj.el.offsetHeight / 2
     );
 
+    // 配列から削除
+    const index = flies.indexOf(flyObj);
+    if (index !== -1) {
+        flies.splice(index, 1);
+    }
+
+    // DOMから削除
+    flyObj.el.remove();
+
+    // 新しいハエを生成
+    createFly();
+
+    // スコア処理
     if (now - lastClickTime <= comboLimit || combo == 0) {
         combo++;
     }
@@ -535,7 +561,6 @@ function clicked() {
 
     lastClickTime = now;
     updateStatus();
-    setRandomPosition();
 
     // 0.15秒でズームアウト
     startZoom(flappyCameraZoom, 0.75, 0.15);
@@ -545,7 +570,30 @@ function clicked() {
     // ズームを元に戻す処理は updateZoom()
 }
 
-setRandomPosition(); // 最初の位置
+setRandomPosition(flies[0]); // 最初の位置
+
+function createFly() {
+    const flyEl = document.createElement("img");
+    flyEl.src = "realisticFly.png";
+    flyEl.className = "flyClone";
+
+    const flyObj = {
+        x: 0,
+        y: 0,
+        el: flyEl
+    };
+
+    // イベント登録（重要）
+    flyEl.addEventListener("click", () => {
+        clicked(flyObj);
+    });
+
+    gameContainer.appendChild(flyEl);
+    flies.push(flyObj);
+
+    // ランダム配置
+    setRandomPosition(flyObj);
+}
 
 function drawComboGauge() {
     const now = Date.now();
