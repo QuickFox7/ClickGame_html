@@ -145,12 +145,13 @@
             z-index:6;
             pointer-events:none;
         }
-        #flappyBestLine{
+        /* 通常（赤） */
+        .best-normal #flappyBestLine{
             width:100%;
             height:2px;
             background:#ff4444;
         }
-        #flappyBestLabel{
+        .best-normal #flappyBestLabel{
             position:absolute;
             left:60%;
             top:0;
@@ -159,6 +160,31 @@
 
             background:rgba(255,80,80,0.9);
             color:white;
+
+            padding:4px 10px;
+            border-radius:10px;
+
+            font-size:14px;
+            font-weight:bold;
+
+            white-space:nowrap;
+        }
+
+        /* 更新中（金） */
+        .best-updating #flappyBestLine{
+            width:100%;
+            height:2px;
+            background:gold;
+        }
+        .best-updating #flappyBestLabel{
+            position:absolute;
+            left:60%;
+            top:0;
+
+            transform:translate(-50%, -50%);
+
+            background:linear-gradient(45deg, gold, orange);
+            color:#222;
 
             padding:4px 10px;
             border-radius:10px;
@@ -230,8 +256,9 @@ const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
 const flappyGround = document.getElementById("flappyGround")
 const best = document.getElementById("flappyBest");
-// const bestLine = document.getElementById("flappyBestLine");
-// const bestLabel = document.getElementById("flappyBestLabel")
+best.classList.add("best-normal");
+const bestLine = document.getElementById("flappyBestLine");
+const bestLabel = document.getElementById("flappyBestLabel");
 const bestIndicator = document.getElementById("flappyBestIndicator");
 
 const windCanvas = document.getElementById("flappyWind");
@@ -272,6 +299,7 @@ let lastTime = Date.now(); // フレーム間の正確な時間測定用
 
 let score = 0;
 let bestScore = 0;
+let isUpdatingBest = false;
 let scoreVel = 0; // score increase per second
 let flappyVelX = 0;
 const FLAPPY_PX_PER_UNIT = 80; // フラッピーゾーン独自の長さをpxに変換
@@ -650,6 +678,21 @@ function drawBestLine() {
             bestIndicator.style.display = "none";
         }
     }
+
+    // ===== 色変更 =====
+    // const isUpdatingBest = score >= bestScore;
+
+    if (isUpdatingBest) {
+        best.classList.add("best-updating");
+        best.classList.remove("best-normal");
+
+        bestLabel.textContent = "ベストスコア更新中！";
+    } else {
+        best.classList.add("best-normal");
+        best.classList.remove("best-updating");
+
+        bestLabel.textContent = "ベストスコア";
+    }
 }
 
 setInterval(() => {
@@ -669,7 +712,10 @@ setInterval(() => {
         scoreVel = 0;
     }
     if (score > bestScore) {
+        isUpdatingBest = true;
         bestScore = score;
+    } else {
+        isUpdatingBest = false;
     }
 
     updateStatus();
