@@ -253,6 +253,8 @@ for (const el of flyElements) {
         x: 0,
         y: 0,
         angle: 0,
+        t: 0,
+        d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
         el: el
     };
     el.addEventListener("click", () => {
@@ -583,7 +585,9 @@ function createFly() {
     const flyObj = {
         x: 0,
         y: 0,
-        angle: 0,
+        angle: Math.random() * Math.PI * 2, // 0 ~ 2π rad
+        t: 0,
+        d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
         el: flyEl
     };
 
@@ -603,10 +607,28 @@ function updateFlies(dt) {
     const speed = 100; // px/秒
 
     for (const fly of flies) {
-        fly.x += Math.cos(fly.angle) * speed * dt;
-        fly.y += Math.sin(fly.angle) * speed * dt;
-
-        const deg = fly.angle * 180 / Math.PI + 90;
+        fly.t += dt;
+        if (fly.t >= fly.d) {
+            fly.t = 0;
+            fly.d = Math.random() * 3 + 2;
+            fly.angle = Math.random() * Math.PI * 2;
+        }
+        //次フレームの位置を計算
+        const vx = Math.cos(fly.angle) * speed * dt;
+        const vy = Math.sin(fly.angle) * speed * dt;
+        const nextX = fly.x + vx;
+        const nextY = fly.y + vy;
+        // 画面内の範囲
+        const maxX = gameContainer.clientWidth - fly.el.offsetWidth;
+        const maxY = gameContainer.clientHeight - fly.el.offsetHeight;
+        // 次フレームで画面外に出るか
+        const isOutX = (nextX < 0 || nextX > maxX);
+        const isOutY = (nextY < 0 || nextY > maxY);
+        // 次フレームで画面内にいるならそのまま進む
+        if (!isOutX && !isOutY) {
+            fly.x = nextX;
+            fly.y = nextY;
+        }
 
         fly.el.style.left = fly.x + "px";
         fly.el.style.top = fly.y + "px";
