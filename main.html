@@ -24,7 +24,7 @@
             overflow: hidden;
         }
 
-        #fly {
+        .fly {
             position: absolute;
             width: 100px;
             height: 100px;
@@ -221,7 +221,7 @@
 
     <!-- 上：ゲーム部分 -->
     <div id="gameContainer">
-        <img id="fly" src="realisticFly.png">
+        <img class="fly" src="realisticFly.png">
         <div id="statusBox">
             <canvas id="comboGauge" width="60" height="60"></canvas>
             <div id="scoreDisplay">Score: 0</div>
@@ -246,17 +246,19 @@
 
 <script>
 
-const fly = document.getElementById("fly");
 const flies = [];
-flies.push({
-    x: 0,
-    y: 0,
-    el: fly
-});
-for (const flyObj of flies) {
-    flyObj.el.addEventListener("click", () => {
+const flyElements = document.querySelectorAll(".fly");
+for (const el of flyElements) {
+    const flyObj = {
+        x: 0,
+        y: 0,
+        angle: 0,
+        el: el
+    };
+    el.addEventListener("click", () => {
         clicked(flyObj);
     });
+    flies.push(flyObj);
 }
 const gameContainer = document.getElementById("gameContainer");
 const gaugeCanvas = document.getElementById("comboGauge");
@@ -448,7 +450,7 @@ function showComboText(x, y, combo) {
     setTimeout(() => comboText.remove(), 1000);
 }
 
-function showCatPaw(x, y) {
+function showCatPaw(x, y, flyObj) {
     const flyClone = document.createElement("img")
     flyClone.src = "realisticFly.png";
     flyClone.className = "flyClone";
@@ -470,7 +472,7 @@ function showCatPaw(x, y) {
     paw.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${angle - Math.PI/2}rad)`;
     flyClone.style.left = x + "px";
     flyClone.style.top = y + "px";
-    flyClone.style.transform = `translate(-50%, -50%)`;
+    flyClone.style.transform = `translate(-50%, -50%) rotate(${flyObj.angle + Math.PI / 2}rad)`;
 
     gameContainer.appendChild(flyClone);
     gameContainer.appendChild(paw);
@@ -531,7 +533,8 @@ function clicked(flyObj) {
     )
     showCatPaw(
         flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
-        flyObj.el.offsetTop + flyObj.el.offsetHeight / 2
+        flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
+        flyObj
     );
 
     // 配列から削除
@@ -575,15 +578,16 @@ setRandomPosition(flies[0]); // 最初の位置
 function createFly() {
     const flyEl = document.createElement("img");
     flyEl.src = "realisticFly.png";
-    flyEl.className = "flyClone";
+    flyEl.className = "fly";
 
     const flyObj = {
         x: 0,
         y: 0,
+        angle: 0,
         el: flyEl
     };
 
-    // イベント登録（重要）
+    // イベント登録
     flyEl.addEventListener("click", () => {
         clicked(flyObj);
     });
@@ -593,6 +597,21 @@ function createFly() {
 
     // ランダム配置
     setRandomPosition(flyObj);
+}
+
+function updateFlies(dt) {
+    const speed = 100; // px/秒
+
+    for (const fly of flies) {
+        fly.x += Math.cos(fly.angle) * speed * dt;
+        fly.y += Math.sin(fly.angle) * speed * dt;
+
+        const deg = fly.angle * 180 / Math.PI + 90;
+
+        fly.el.style.left = fly.x + "px";
+        fly.el.style.top = fly.y + "px";
+        fly.el.style.transform = `rotate(${fly.angle + Math.PI / 2}rad)`;
+    }
 }
 
 function drawComboGauge() {
@@ -770,6 +789,7 @@ setInterval(() => {
     drawComboGauge();
 
     updateZoom(deltaTime);
+    updateFlies(deltaTime);
     updateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
     drawStars(deltaTime);
