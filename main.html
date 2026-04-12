@@ -252,9 +252,11 @@ for (const el of flyElements) {
     const flyObj = {
         x: 0,
         y: 0,
-        angle: 0,
+        angle: Math.random() * Math.PI * 2, // 0 ~ 2π rad
+        angleVel: 0,
         t: 0,
         d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
+        state: "moving", // moving or stopped or turning
         el: el
     };
     el.addEventListener("click", () => {
@@ -586,8 +588,10 @@ function createFly() {
         x: 0,
         y: 0,
         angle: Math.random() * Math.PI * 2, // 0 ~ 2π rad
+        angleVel: 0,
         t: 0,
         d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
+        state: "moving", // moving or stopped or turning
         el: flyEl
     };
 
@@ -603,6 +607,17 @@ function createFly() {
     setRandomPosition(flyObj);
 }
 
+// updateFlies() 内で、状態に応じて動き方を変えるための遷移ルール
+const transitions = {
+    moving: ["stopped", "turning"],
+    stopped: ["moving", "turning"],
+    turning: ["moving", "stopped"]
+};
+function getNextState(current) {
+    const candidates = transitions[current];
+    return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
 function updateFlies(dt) {
     const speed = 100; // px/秒
 
@@ -611,23 +626,36 @@ function updateFlies(dt) {
         if (fly.t >= fly.d) {
             fly.t = 0;
             fly.d = Math.random() * 3 + 2;
-            fly.angle = Math.random() * Math.PI * 2;
+            fly.state = getNextState(fly.state);
+            if (fly.state === "turning") {
+                fly.angleVel = (Math.random() * Math.PI * 2 - Math.PI) / fly.d; // -180 ~ 180度を向くまでの角速度
+            } else { fly.angleVel = 0; }
         }
-        //次フレームの位置を計算
-        const vx = Math.cos(fly.angle) * speed * dt;
-        const vy = Math.sin(fly.angle) * speed * dt;
-        const nextX = fly.x + vx;
-        const nextY = fly.y + vy;
-        // 画面内の範囲
-        const maxX = gameContainer.clientWidth - fly.el.offsetWidth;
-        const maxY = gameContainer.clientHeight - fly.el.offsetHeight;
-        // 次フレームで画面外に出るか
-        const isOutX = (nextX < 0 || nextX > maxX);
-        const isOutY = (nextY < 0 || nextY > maxY);
-        // 次フレームで画面内にいるならそのまま進む
-        if (!isOutX && !isOutY) {
-            fly.x = nextX;
-            fly.y = nextY;
+        fly.angle += fly.angleVel * dt;
+        if (fly.state === "moving") {
+            //次フレームの位置を計算
+            const vx = Math.cos(fly.angle) * speed * dt;
+            const vy = Math.sin(fly.angle) * speed * dt;
+            const nextX = fly.x + vx;
+            const nextY = fly.y + vy;
+            // 画面内の範囲
+            const maxX = gameContainer.clientWidth - fly.el.offsetWidth;
+            const maxY = gameContainer.clientHeight - fly.el.offsetHeight;
+            // 次フレームで画面外に出るか
+            const isOutX = (nextX < 0 || nextX > maxX);
+            const isOutY = (nextY < 0 || nextY > maxY);
+            // 次フレームで画面内にいるならそのまま進む
+            if (!isOutX && !isOutY) {
+                fly.x = nextX;
+                fly.y = nextY;
+            } else {
+                fly.t = 0;
+                fly.d = Math.random() * 3 + 2;
+                fly.state = getNextState(fly.state); // 画面外なら状態遷移する
+                if (fly.state === "turning") {
+                    fly.angleVel = (Math.random() * Math.PI * 2 - Math.PI) / fly.d; // -180 ~ 180度を向くまでの角速度
+                } else { fly.angleVel = 0; }
+            }
         }
 
         fly.el.style.left = fly.x + "px";
