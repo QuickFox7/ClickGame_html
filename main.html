@@ -256,7 +256,7 @@ for (const el of flyElements) {
         angleVel: 0,
         t: 0,
         d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
-        state: "moving", // moving or stopped or turning
+        state: "moving", // moving or stopped or turning or blocked
         el: el
     };
     el.addEventListener("click", () => {
@@ -611,11 +611,27 @@ function createFly() {
 const transitions = {
     moving: ["stopped", "turning"],
     stopped: ["moving", "turning"],
-    turning: ["moving", "stopped"]
+    turning: ["moving", "stopped"],
+    blocked: ["turning"] // 壁にあたったとき(stoppedと同じ挙動)
 };
 function getNextState(current) {
     const candidates = transitions[current];
     return candidates[Math.floor(Math.random() * candidates.length)];
+}
+function isFlyOut(fly, speed, dt) {
+    //次フレームの位置を計算
+    const vx = Math.cos(fly.angle) * speed * dt;
+    const vy = Math.sin(fly.angle) * speed * dt;
+    const nextX = fly.x + vx;
+    const nextY = fly.y + vy;
+    // 画面内の範囲
+    const maxX = gameContainer.clientWidth - fly.el.offsetWidth;
+    const maxY = gameContainer.clientHeight - fly.el.offsetHeight;
+    // 次フレームで画面外に出るか
+    const isOutX = (nextX < 0 || nextX > maxX);
+    const isOutY = (nextY < 0 || nextY > maxY);
+    const isOut = isOutX || isOutY;
+    return { isOut, nextX, nextY };
 }
 
 function updateFlies(dt) {
@@ -633,28 +649,16 @@ function updateFlies(dt) {
         }
         fly.angle += fly.angleVel * dt;
         if (fly.state === "moving") {
-            //次フレームの位置を計算
-            const vx = Math.cos(fly.angle) * speed * dt;
-            const vy = Math.sin(fly.angle) * speed * dt;
-            const nextX = fly.x + vx;
-            const nextY = fly.y + vy;
-            // 画面内の範囲
-            const maxX = gameContainer.clientWidth - fly.el.offsetWidth;
-            const maxY = gameContainer.clientHeight - fly.el.offsetHeight;
-            // 次フレームで画面外に出るか
-            const isOutX = (nextX < 0 || nextX > maxX);
-            const isOutY = (nextY < 0 || nextY > maxY);
-            // 次フレームで画面内にいるならそのまま進む
-            if (!isOutX && !isOutY) {
+            const { isOut, nextX, nextY } = isFlyOut(fly, speed, dt);
+            // 次フレームで画面内にいるならそのまま進む、画面外なら止まる
+            if (!isOut) {
                 fly.x = nextX;
                 fly.y = nextY;
             } else {
                 fly.t = 0;
                 fly.d = Math.random() * 3 + 2;
-                fly.state = getNextState(fly.state); // 画面外なら状態遷移する
-                if (fly.state === "turning") {
-                    fly.angleVel = (Math.random() * Math.PI * 2 - Math.PI) / fly.d; // -180 ~ 180度を向くまでの角速度
-                } else { fly.angleVel = 0; }
+                fly.state = "blocked";
+                fly.angleVel = 0;
             }
         }
 
