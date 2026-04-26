@@ -664,7 +664,13 @@ function updateFlies(dt) {
 
         fly.el.style.left = fly.x + "px";
         fly.el.style.top = fly.y + "px";
-        fly.el.style.transform = `rotate(${fly.angle + Math.PI / 2}rad)`;
+        const wobble =
+            fly.state === "moving" ? Math.sin(fly.t * 50) * 0.1 :
+            fly.state === "turning" ? Math.sin(fly.t * 50) * 0.05 :
+            0;
+
+        fly.el.style.transform =
+            `rotate(${fly.angle + wobble + Math.PI / 2}rad)`;
     }
 }
 
