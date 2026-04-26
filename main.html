@@ -221,7 +221,6 @@
 
     <!-- 上：ゲーム部分 -->
     <div id="gameContainer">
-        <img class="fly" src="realisticFly.png">
         <div id="statusBox">
             <canvas id="comboGauge" width="60" height="60"></canvas>
             <div id="scoreDisplay">Score: 0</div>
@@ -246,25 +245,12 @@
 
 <script>
 
-const flies = [];
-const flyElements = document.querySelectorAll(".fly");
-for (const el of flyElements) {
-    const flyObj = {
-        x: 0,
-        y: 0,
-        angle: Math.random() * Math.PI * 2, // 0 ~ 2π rad
-        angleVel: 0,
-        t: 0,
-        d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
-        state: "moving", // moving or stopped or turning or blocked
-        el: el
-    };
-    el.addEventListener("click", () => {
-        clicked(flyObj);
-    });
-    flies.push(flyObj);
-}
 const gameContainer = document.getElementById("gameContainer");
+const INITIAL_FLY_COUNT = 1;
+const flies = [];
+for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
+    createFly();
+}
 const gaugeCanvas = document.getElementById("comboGauge");
 const gctx = gaugeCanvas.getContext("2d");
 const flappyContainer = document.getElementById("flappyContainer")
@@ -576,8 +562,6 @@ function clicked(flyObj) {
     zoomHoldingDuration = 0.15 + 0.3*(gravity + Math.floor(combo/5))/gravity;
     // ズームを元に戻す処理は updateZoom()
 }
-
-setRandomPosition(flies[0]); // 最初の位置
 
 function createFly() {
     const flyEl = document.createElement("img");
