@@ -24,6 +24,26 @@
             overflow: hidden;
         }
 
+        #comboBorder {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #comboBorderRect {
+            fill: none;
+            stroke: #ff9800;
+            stroke-width: 8;
+            stroke-linecap: round;
+            filter:
+                drop-shadow(0 0 4px rgba(255,150,0,0.8));
+            transition:
+                stroke 0.2s linear;
+        }
+
         .fly {
             position: absolute;
             width: 100px;
@@ -60,25 +80,6 @@
             transition: 
                 opacity 0.4s ease, /* 透明度変更を 0.4 秒, ふわっと */
                 transform 0.4s ease;
-        }
-
-        #statusBox {
-            position: absolute;
-            right: 10px; /* 親要素の右端から */
-            bottom: 10px; /* 親要素の下端から */
-            background: rgba(255,255,255,0.8);
-            padding: 8px 12px;
-            border-radius: 8px;
-            text-align: right;
-            align-items: center;
-            z-index: 10; /* 重なり順(最前面) */
-            pointer-events: none; /* ←クリックを邪魔しない */
-            font-size: 18px;
-        }
-
-        #comboGauge {
-            width: 60px;
-            height: 60px;
         }
 
         /* 下：flappy（40%） */
@@ -250,11 +251,9 @@
 
     <!-- 上：ゲーム部分 -->
     <div id="gameContainer">
-        <div id="statusBox">
-            <canvas id="comboGauge" width="60" height="60"></canvas>
-            <div id="scoreDisplay">Score: 0</div>
-            <div id="comboDisplay">Combo: 0</div>
-        </div>
+        <svg id="comboBorder">
+            <rect id="comboBorderRect" />
+        </svg>
     </div>
 
     <!-- 下：フラッピーゾーン -->
@@ -281,8 +280,37 @@ const flies = [];
 for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
     createFly();
 }
-const gaugeCanvas = document.getElementById("comboGauge");
-const gctx = gaugeCanvas.getContext("2d");
+const comboBorder =document.getElementById("comboBorder");
+const comboBorderRect =document.getElementById("comboBorderRect");
+function resizeComboBorder() {
+    const w = gameContainer.clientWidth;
+    const h = gameContainer.clientHeight;
+    comboBorder.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    const padding = 4;
+    const stroke = 8;
+    comboBorderRect.setAttribute("x", padding);
+    comboBorderRect.setAttribute("y", padding);
+    comboBorderRect.setAttribute(
+        "width",
+        w - padding * 2
+    );
+    comboBorderRect.setAttribute(
+        "height",
+        h - padding * 2
+    );
+    const perimeter =
+        (w - padding * 2) * 2 +
+        (h - padding * 2) * 2;
+    comboBorderRect.style.strokeDasharray =
+        perimeter;
+    comboBorderRect.dataset.perimeter =
+        perimeter;
+}
+resizeComboBorder();
+window.addEventListener(
+    "resize",
+    resizeComboBorder
+);
 const flappyContainer = document.getElementById("flappyContainer")
 const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
@@ -424,20 +452,11 @@ function drawWind(scoreVel, deltaTime) {
     wctx.restore();
 }
 
-function updateStatus() {
-    document.getElementById("scoreDisplay").textContent = "Score: " + Math.floor(score);
-    document.getElementById("comboDisplay").textContent = "Combo: " + combo;
-}
-
 // ボタンをランダム位置へ動かす関数
 function setRandomPosition(flyObj) {
-    const box = document.getElementById("statusBox"); // あとで消す
 
-    const boxW = box.offsetWidth;
-    const boxH = box.offsetHeight;
-
-    const maxX = gameContainer.clientWidth - flyObj.el.offsetWidth - boxW - 10;
-    const maxY = gameContainer.clientHeight - flyObj.el.offsetHeight - boxH - 10;
+    const maxX = gameContainer.clientWidth - flyObj.el.offsetWidth - 10;
+    const maxY = gameContainer.clientHeight - flyObj.el.offsetHeight - 10;
 
     const x = Math.random() * maxX;
     const y = Math.random() * maxY;
@@ -691,37 +710,32 @@ function updateFlies(dt) {
 }
 
 function drawComboGauge() {
+
     const now = Date.now();
     const elapsed = now - lastClickTime;
 
-    // 残り割合（1.0 → 0.0）
     let ratio = 1 - elapsed / comboLimit;
-    if (ratio < 0) ratio = 0;
+    ratio = Math.max(0, ratio);
 
-    const center = 30; // canvas 60 の半分
-    const radius = 24; // 外側 - 太さ/2 (= 内側の半径)
+    const perimeter =
+        Number(comboBorderRect.dataset.perimeter);
 
-    gctx.clearRect(0, 0, 60, 60); // x, y, width, height
+    comboBorderRect.style.strokeDashoffset =
+        perimeter * (1 - ratio);
 
-    // 背景円
-    gctx.beginPath();
-    gctx.arc(center, center, radius, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
-    gctx.strokeStyle = "#ddd";
-    gctx.lineWidth = 10;
-    gctx.stroke();
-
-    // コンボ残りゲージ
-    gctx.beginPath();
-    gctx.arc(
-        center,
-        center,
-        radius,
-        -Math.PI / 2,
-        -Math.PI / 2 + Math.PI * 2 * ratio
-    );
-    gctx.strokeStyle = "#ff9800";
-    gctx.lineWidth = 6;
-    gctx.stroke();
+    // 色変化
+    if (ratio > 0.5) {
+        comboBorderRect.style.stroke =
+            "#ff9800";
+    }
+    else if (ratio > 0.2) {
+        comboBorderRect.style.stroke =
+            "#ff5722";
+    }
+    else {
+        comboBorderRect.style.stroke =
+            "#ff0000";
+    }
 }
 
 function updateFlappyChar(scoreVel, deltaTime) {
@@ -863,7 +877,6 @@ setInterval(() => {
         isUpdatingBest = false;
     }
 
-    updateStatus();
     drawComboGauge();
 
     updateZoom(deltaTime);
