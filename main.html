@@ -24,13 +24,52 @@
             overflow: hidden;
         }
 
+        #flyBackGround {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        #veranda {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 画面を埋める */
+            object-position: center; /* 中央基準で切り抜き */
+            display: block;
+        }
+
+        #watermelon {
+            position: absolute;
+            width: 300px;
+            left: 50%;
+            bottom: 15%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+
+            filter: drop-shadow(0 8px 8px rgba(0,0,0,0.25));
+        }
+
+        #ramune {
+            position: absolute;
+            width: 60px;
+            left: 35%;
+            bottom: 30%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+
+            filter: drop-shadow(0 8px 8px rgba(0,0,0,0.25));
+        }
+
         #comboBorder {
             position: absolute;
             inset: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 50;
+            z-index: 100;
         }
 
         #comboBorderRect {
@@ -46,22 +85,23 @@
 
         .fly {
             position: absolute;
-            width: 100px;
-            height: 100px;
+            height: 65px;
             cursor: pointer;
+            z-index: 50;
         }
 
         .flyClone{
             position: absolute;
-            width: 100px;
-            height: 100px;
+            height: 65px;
+            z-index: 45;
+            pointer-events: none;
         }
 
         .cat-paw {
             position: absolute;
             width: 160px; /* 叩くときに75%(120px) */
             height: auto; /* 1280px */
-            z-index: 5; /* 重なり順(UIの後ろ) */
+            z-index: 60; /* 重なり順(UIの後ろ) */
             pointer-events: none; /* クリックを邪魔しない */
             transform: translate(-50%, -50%); /* 指定座標に中心寄せ */
             opacity: 0; /* 透明度(0 or 1) */
@@ -73,7 +113,7 @@
         .comboText {
             position: absolute;
             font-size: 25px;
-            z-index: 6;
+            z-index: 55;
             pointer-events: none;
             transform: translate(-50%, -50%); /* 指定座標に中心寄せ */
             opacity: 0;
@@ -251,6 +291,11 @@
 
     <!-- 上：ゲーム部分 -->
     <div id="gameContainer">
+        <div id="flyBackGround">
+            <img id="veranda" src="veranda.png">
+        </div>
+        <img id="watermelon" src="watermelon.png">
+        <img id="ramune" src="ramune.png">
         <svg id="comboBorder">
             <rect id="comboBorderRect" />
         </svg>
