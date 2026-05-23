@@ -112,7 +112,16 @@
 
         .comboText {
             position: absolute;
+            white-space: nowrap;
             font-size: 25px;
+            font-weight: bold;
+            color: black;
+            text-shadow:
+                -2px -2px 0 white,
+                2px -2px 0 white,
+                -2px  2px 0 white,
+                2px  2px 0 white,
+                0px  0px 8px rgba(255,255,255,0.8);
             z-index: 55;
             pointer-events: none;
             transform: translate(-50%, -50%); /* 指定座標に中心寄せ */
@@ -515,7 +524,7 @@ function setRandomPosition(flyObj) {
 
 function showComboText(x, y, combo) {
     const comboText = document.createElement("div")
-    comboText.textContent = `${combo+1}コンボ！` // comboが増える前の処理なので+1
+    comboText.textContent = `${combo}コンボ！`
     comboText.className = "comboText"
 
     comboText.style.left = x + "px";
@@ -523,9 +532,24 @@ function showComboText(x, y, combo) {
     comboText.style.transform = `translate(-50%, -50%)`;
     gameContainer.appendChild(comboText);
 
+    const margin = 5;
     requestAnimationFrame(() => {
+        const rect = comboText.getBoundingClientRect();
+
+        let adjustedX = x;
+        // 左にはみ出す
+        if (rect.left < margin) {
+            adjustedX += margin - rect.left;
+        }
+        // 右にはみ出す
+        if (rect.right > window.innerWidth - margin) {
+            adjustedX -= rect.right - (window.innerWidth - margin);
+        }
+        comboText.style.left = adjustedX + "px";
+
         comboText.style.opacity = 1;
-        comboText.style.transform = `translate(-50%, -50%) scale(0.8)`;
+        comboText.style.transform =
+            `translate(-50%, -50%) scale(0.8)`;
     });
 
     setTimeout(() => {
@@ -612,11 +636,13 @@ function updateZoom(deltaTime) {
 // クリックされたらスコアアップ＋移動
 function clicked(flyObj) {
     const now = Date.now();
-    showComboText(
-        flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
-        flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
-        combo
-    )
+    if (combo >= 1) {
+        showComboText(
+            flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
+            flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
+            combo + 1 // comboが増える前の処理なので +1
+        );
+    }
     showCatPaw(
         flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
         flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
