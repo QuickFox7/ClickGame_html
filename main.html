@@ -275,12 +275,12 @@
 
             white-space:nowrap;
         }
+
         #flappyBestIndicator{
             position:absolute;
             top:10px;
             left:60%;
             transform:translateX(-50%);
-
             background:rgba(0,0,0,0.6);
             color:white;
 
@@ -292,8 +292,52 @@
 
             z-index:20;
             pointer-events:none;
-
             display:none;
+        }
+
+        #titleScreen{
+            position:fixed;
+            inset:0;
+
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            align-items:center;
+            gap:20px;
+
+            background:
+                rgba(0,0,0,0.35);
+            backdrop-filter:blur(6px);
+
+            z-index:1000;
+        }
+
+        #titleLogo{
+            font-size:64px;
+            font-weight:bold;
+            color:white;
+
+            text-shadow:
+                0 0 20px rgba(255,255,255,0.5);
+        }
+
+        #startButton{
+            font-size:32px;
+
+            padding:
+                14px 40px;
+            border:none;
+            border-radius:20px;
+            cursor:pointer;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #fff8,
+                    #fff3
+                );
+            backdrop-filter:blur(4px);
+            color:white;
         }
     </style>
 </head>
@@ -328,16 +372,33 @@
         <div id="flappyBestIndicator">ベストスコアまで </div>
     </div>
 
+    <div id="titleScreen">
+        <div id="titleLogo">Fly Smash</div>
+
+        <button id="startButton">START</button>
+
+        <div id="titleBest">BEST : 0</div>
+    </div>
+</div>
+
 <script>
 
+const titleScreen = document.getElementById("titleScreen");
+const startButton = document.getElementById("startButton");
+startButton.addEventListener("click", () => {
+    titleScreen.style.opacity = 0;
+    setTimeout(() => {
+        titleScreen.remove();
+    }, 500);
+});
 const gameContainer = document.getElementById("gameContainer");
 const INITIAL_FLY_COUNT = 1;
 const flies = [];
 for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
     createFly();
 }
-const comboBorder =document.getElementById("comboBorder");
-const comboBorderRect =document.getElementById("comboBorderRect");
+const comboBorder = document.getElementById("comboBorder");
+const comboBorderRect = document.getElementById("comboBorderRect");
 function resizeComboBorder() {
     const w = gameContainer.clientWidth;
     const h = gameContainer.clientHeight;
