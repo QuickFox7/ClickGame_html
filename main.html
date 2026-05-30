@@ -295,6 +295,25 @@
             display:none;
         }
 
+        #homeButton{
+            position:absolute;
+            top:10px;
+            left:10px;
+
+            padding:6px 12px;
+            border:none;
+            border-radius:20px;
+            cursor:pointer;
+
+            background:rgba(255,255,255,0.8);
+            color:#333;
+
+            font-size:14px;
+            font-weight:bold;
+
+            z-index:100;
+        }
+
         #titleScreen{
             position:fixed;
             inset:0;
@@ -306,7 +325,7 @@
             gap:20px;
 
             background:
-                rgba(0,0,0,0.35);
+                rgba(0, 0, 0, 0.35);
             backdrop-filter:blur(6px);
 
             z-index:1000;
@@ -370,6 +389,7 @@
             <div id="flappyBestLabel">ベストスコア</div>
         </div>
         <div id="flappyBestIndicator">ベストスコアまで </div>
+        <button id="homeButton">HOME</button>
     </div>
 
     <div id="titleScreen">
@@ -383,13 +403,17 @@
 
 <script>
 
+let isPlaying = false;
 const titleScreen = document.getElementById("titleScreen");
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
-    titleScreen.style.opacity = 0;
-    setTimeout(() => {
-        titleScreen.remove();
-    }, 500);
+    isPlaying = true;
+    titleScreen.style.display = "none";
+});
+const  homeButton = document.getElementById("homeButton");
+homeButton.addEventListener("click", () => {
+    isPlaying = false;
+    titleScreen.style.display = "flex";
 });
 const gameContainer = document.getElementById("gameContainer");
 const INITIAL_FLY_COUNT = 1;
@@ -845,6 +869,12 @@ function updateFlies(dt) {
 
 function drawComboGauge() {
 
+    if (combo === 0) {
+        comboBorderRect.style.strokeDashoffset =
+            Number(comboBorderRect.dataset.perimeter);
+        return;
+    }
+
     const now = Date.now();
     const elapsed = now - lastClickTime;
 
@@ -852,7 +882,7 @@ function drawComboGauge() {
     ratio = Math.max(0, ratio);
 
     const perimeter =
-        Number(comboBorderRect.dataset.perimeter);
+        Number(comboBorderRect.dataset.perimeter); // SVGの周囲の長さ
 
     comboBorderRect.style.strokeDashoffset =
         perimeter * (1 - ratio);
@@ -992,22 +1022,30 @@ setInterval(() => {
     const now = Date.now();
     const deltaTime = (now - lastTime) / 1000; // 秒
     lastTime = now;
-    if (now - lastClickTime > comboLimit) {
-        combo = 0;
-    }
 
-    // 減衰量の計算
-    scoreVel -= gravity * deltaTime;
-    score += scoreVel * deltaTime;
+    if (isPlaying) {
+        if (now - lastClickTime > comboLimit) {
+            combo = 0;
+        }
 
-    if (score <= 0) {
+        // 減衰量の計算
+        scoreVel -= gravity * deltaTime;
+        score += scoreVel * deltaTime;
+
+        if (score <= 0) {
+            score = 0;
+            scoreVel = 0;
+        }
+        if (score > bestScore) {
+            isUpdatingBest = true;
+            bestScore = score;
+        } else {
+            isUpdatingBest = false;
+        }
+    } else {
         score = 0;
         scoreVel = 0;
-    }
-    if (score > bestScore) {
-        isUpdatingBest = true;
-        bestScore = score;
-    } else {
+        combo = 0;
         isUpdatingBest = false;
     }
 
