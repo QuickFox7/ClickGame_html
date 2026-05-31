@@ -206,7 +206,11 @@
                 0 0 10px rgba(255,255,255,0.1);
 
             text-shadow:
-                0 0 6px rgba(255,255,255,0.5);
+                -2px -2px 0 white,
+                2px -2px 0 white,
+                -2px  2px 0 white,
+                2px  2px 0 white,
+                0px  0px 8px rgba(255,255,255,0.8);
 
             padding:4px 10px;
             border-radius:10px;
@@ -358,6 +362,14 @@
             backdrop-filter:blur(4px);
             color:white;
         }
+
+        #titleBest{
+            font-size:18px;
+            color:white;
+
+            text-shadow:
+                0 0 10px rgba(255,255,255,0.5);
+        }
     </style>
 </head>
 
@@ -415,6 +427,7 @@ homeButton.addEventListener("click", () => {
     isPlaying = false;
     titleScreen.style.display = "flex";
 });
+const titleBest = document.getElementById("titleBest");
 const gameContainer = document.getElementById("gameContainer");
 const INITIAL_FLY_COUNT = 1;
 const flies = [];
@@ -1039,6 +1052,7 @@ setInterval(() => {
         if (score > bestScore) {
             isUpdatingBest = true;
             bestScore = score;
+            titleBest.textContent = `BEST : ${Math.floor(bestScore)}`;
         } else {
             isUpdatingBest = false;
         }
