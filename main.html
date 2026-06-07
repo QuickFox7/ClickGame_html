@@ -16,12 +16,13 @@
             -webkit-user-drag: none;
         }
 
-        /* 上：ゲーム画面（60%） */
+        /* 上：ゲーム画面（title:100%, game:60%） */
         #gameContainer {
-            height: 60vh;
+            height: 100vh;
             position: relative;
             background: #eef;
             overflow: hidden;
+            transition:height 0.8s ease;
         }
 
         #flyBackGround {
@@ -133,13 +134,14 @@
                 transform 0.4s ease;
         }
 
-        /* 下：flappy（40%） */
+        /* 下：flappy（title:0, game:40%） */
         #flappyContainer {
             position: relative;
-            height: 40vh;
+            height: 0;
             width: 100vw;
             overflow: hidden;
             background: #fafafa;
+            transition:height 0.8s ease;
         }
         #flappyBgSpace {
             position: absolute;
@@ -508,16 +510,6 @@
 
 let isPlaying = false;
 const titleScreen = document.getElementById("titleScreen");
-const startButton = document.getElementById("startButton");
-startButton.addEventListener("click", () => {
-    isPlaying = true;
-    titleScreen.style.display = "none";
-});
-const  homeButton = document.getElementById("homeButton");
-homeButton.addEventListener("click", () => {
-    isPlaying = false;
-    titleScreen.style.display = "flex";
-});
 const titleBest = document.getElementById("titleBest");
 const gameContainer = document.getElementById("gameContainer");
 const INITIAL_FLY_COUNT = 1;
@@ -525,6 +517,22 @@ const flies = [];
 for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
     createFly();
 }
+function clampFliesToScreen() {
+    const w = gameContainer.clientWidth;
+    const h = gameContainer.clientHeight;
+
+    for (const fly of flies) {
+        const fw = fly.el.offsetWidth;
+        const fh = fly.el.offsetHeight;
+
+        fly.x = Math.max(0, Math.min(w - fw, fly.x));
+        fly.y = Math.max(0, Math.min(h - fh, fly.y));
+
+        fly.el.style.left = `${fly.x}px`; // leftのpx値を更新
+        fly.el.style.top = `${fly.y}px`; // topのpx値を更新
+    }
+}
+window.addEventListener("resize", clampFliesToScreen);
 const comboBorder = document.getElementById("comboBorder");
 const comboBorderRect = document.getElementById("comboBorderRect");
 function resizeComboBorder() {
@@ -556,10 +564,10 @@ window.addEventListener(
     "resize",
     resizeComboBorder
 );
-const flappyContainer = document.getElementById("flappyContainer")
+const flappyContainer = document.getElementById("flappyContainer");
 const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
-const flappyGround = document.getElementById("flappyGround")
+const flappyGround = document.getElementById("flappyGround");
 const flappyScore = document.getElementById("flappyScore");
 const best = document.getElementById("flappyBest");
 best.classList.add("best-normal");
@@ -597,6 +605,37 @@ const stars = Array.from({ length: STAR_COUNT }, () => {
         phase: Math.random() * Math.PI * 2,
         speed: 15 * b
     };
+});
+
+const startButton = document.getElementById("startButton");
+startButton.addEventListener("click", () => {
+    isPlaying = true;
+    titleScreen.style.display = "none";
+    requestAnimationFrame(() => {
+        gameContainer.style.height = "60vh";
+        flappyContainer.style.height = "40vh";
+    });
+    setTimeout(() => {
+        resizeComboBorder();
+        resizeWind();
+        resizeStars();
+        clampFliesToScreen();
+    }, 800); // タイトルからゲーム画面への移行のリサイズに合わせる
+});
+const homeButton = document.getElementById("homeButton");
+homeButton.addEventListener("click", () => {
+    isPlaying = false;
+    titleScreen.style.display = "flex";
+    requestAnimationFrame(() => {
+        gameContainer.style.height = "100vh";
+        flappyContainer.style.height = "0";
+    });
+    setTimeout(() => {
+        resizeComboBorder();
+        resizeWind();
+        resizeStars();
+        clampFliesToScreen();
+    }, 800); // ゲーム画面からタイトルへの移行のリサイズに合わせる
 });
 
 let gravity = 9.8;
@@ -882,8 +921,8 @@ function createFly() {
     flyEl.className = "fly";
 
     const flyObj = {
-        x: 0,
-        y: 0,
+        x: 0, // leftのpx値
+        y: 0, // topのpx値
         angle: Math.random() * Math.PI * 2, // 0 ~ 2π rad
         angleVel: 0,
         t: 0,
