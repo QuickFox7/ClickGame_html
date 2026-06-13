@@ -532,7 +532,6 @@ function clampFliesToScreen() {
         fly.el.style.top = `${fly.y}px`; // topのpx値を更新
     }
 }
-window.addEventListener("resize", clampFliesToScreen);
 const comboBorder = document.getElementById("comboBorder");
 const comboBorderRect = document.getElementById("comboBorderRect");
 function resizeComboBorder() {
@@ -560,10 +559,6 @@ function resizeComboBorder() {
         perimeter;
 }
 resizeComboBorder();
-window.addEventListener(
-    "resize",
-    resizeComboBorder
-);
 const flappyContainer = document.getElementById("flappyContainer");
 const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
@@ -582,7 +577,6 @@ function resizeWind() {
     windCanvas.height = flappyContainer.clientHeight;
 }
 resizeWind();
-window.addEventListener("resize", resizeWind);
 
 const starCanvas = document.getElementById("flappyStars");
 const sctx = starCanvas.getContext("2d");
@@ -591,7 +585,6 @@ function resizeStars() {
     starCanvas.height = flappyContainer.clientHeight;
 }
 resizeStars();
-window.addEventListener("resize", resizeStars);
 
 const STAR_COUNT = 1000;
 
@@ -607,6 +600,28 @@ const stars = Array.from({ length: STAR_COUNT }, () => {
     };
 });
 
+function resizeAll() {
+    resizeComboBorder();
+    resizeWind();
+    resizeStars();
+    clampFliesToScreen();
+}
+
+let prevWidth = gameContainer.clientWidth;
+let prevHeight = gameContainer.clientHeight;
+
+function checkResize() {
+    const w = gameContainer.clientWidth;
+    const h = gameContainer.clientHeight;
+
+    if (w === prevWidth && h === prevHeight) return;
+
+    prevWidth = w;
+    prevHeight = h;
+
+    resizeAll();
+}
+
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
     isPlaying = true;
@@ -615,12 +630,6 @@ startButton.addEventListener("click", () => {
         gameContainer.style.height = "60vh";
         flappyContainer.style.height = "40vh";
     });
-    setTimeout(() => {
-        resizeComboBorder();
-        resizeWind();
-        resizeStars();
-        clampFliesToScreen();
-    }, 800); // タイトルからゲーム画面への移行のリサイズに合わせる
 });
 const homeButton = document.getElementById("homeButton");
 homeButton.addEventListener("click", () => {
@@ -630,12 +639,6 @@ homeButton.addEventListener("click", () => {
         gameContainer.style.height = "100vh";
         flappyContainer.style.height = "0";
     });
-    setTimeout(() => {
-        resizeComboBorder();
-        resizeWind();
-        resizeStars();
-        clampFliesToScreen();
-    }, 800); // ゲーム画面からタイトルへの移行のリサイズに合わせる
 });
 
 let gravity = 9.8;
@@ -1192,6 +1195,8 @@ setInterval(() => {
         combo = 0;
         isUpdatingBest = false;
     }
+
+    checkResize();
 
     drawComboGauge();
 
