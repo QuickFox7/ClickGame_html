@@ -476,9 +476,18 @@
     <div id="titleScreen">
         <div id="titleLogo">Fly Smash</div>
 
-        <button id="startButton">START</button>
+        <div id="modeSelector">
+            <button id="modePrev">◀</button>
 
+            <div id="modeDisplay">
+                ∞ エンドレス
+            </div>
+
+            <button id="modeNext">▶</button>
+        </div>
+        <button id="startButton">START</button>
         <div id="titleBest">BEST : 0</div>
+
         <div id="titleGuide">
             <div class="guideCard">
                 <div class="guideIcon">
@@ -509,6 +518,7 @@
 <script>
 
 let isPlaying = false;
+let gameMode = "endless"; // endless, timeAttack, survival
 const titleScreen = document.getElementById("titleScreen");
 const titleBest = document.getElementById("titleBest");
 const gameContainer = document.getElementById("gameContainer");
@@ -621,6 +631,37 @@ function checkResize() {
 
     resizeAll();
 }
+
+const modes = [
+    { id: "endless", name: "∞ エンドレス" },
+    { id: "timeAttack", name: "⏱ 60秒チャレンジ" },
+    { id: "survival", name: "🎯 サバイバル(3ミス)" }
+];
+
+let modeIndex = 0;
+const modeDisplay = document.getElementById("modeDisplay");
+
+function updateModeDisplay() {
+    modeDisplay.textContent = modes[modeIndex].name;
+}
+
+const modePrev = document.getElementById("modePrev");
+modePrev.addEventListener("click", () => {
+    modeIndex--;
+    if (modeIndex < 0) {
+        modeIndex = modes.length - 1;
+    }
+    updateModeDisplay();
+});
+
+const modeNext = document.getElementById("modeNext");
+modeNext.addEventListener("click", () => {
+    modeIndex++;
+    if (modeIndex >= modes.length) {
+        modeIndex = 0;
+    }
+    updateModeDisplay();
+});
 
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
