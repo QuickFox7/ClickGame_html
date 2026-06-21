@@ -351,23 +351,47 @@
                 0 0 8px rgba(255,255,255,0.8);
         }
 
-        #homeButton{
-            position:absolute;
+        #gameHomeButton{
             top:10px;
             left:10px;
+        }
 
-            padding:6px 12px;
-            border:none;
-            border-radius:20px;
-            cursor:pointer;
+        #resultScreen{
+            position:fixed;
+            inset:0;
 
-            background:rgba(255,255,255,0.8);
-            color:#333;
+            display:none; /* 初期状態では非表示 */
+            flex-direction:column;
+            justify-content:center;
+            align-items:center;
+            gap:20px;
 
-            font-size:14px;
+            background:
+                rgba(0, 0, 0, 0.35);
+            backdrop-filter:blur(6px);
+
+            z-index:1000;
+        }
+
+        #resultTitle{
+            font-size:48px;
             font-weight:bold;
+            color:white;
 
-            z-index:100;
+            text-shadow:
+                0 0 20px rgba(255,255,255,0.5);
+        }
+
+        #resultScore{
+            font-size:24px;
+            color:white;
+
+            text-shadow:
+                0 0 10px rgba(255,255,255,0.5);
+        }
+
+        #resultHomeButton{
+            position:relative;
         }
 
         #titleScreen{
@@ -464,6 +488,23 @@
                 0 4px 12px rgba(0,0,0,0.2);
         }
 
+        .homeButton{
+            position:absolute;
+
+            padding:6px 12px;
+            border:none;
+            border-radius:20px;
+            cursor:pointer;
+
+            background:rgba(255,255,255,0.8);
+            color:#333;
+
+            font-size:14px;
+            font-weight:bold;
+
+            z-index:100;
+        }
+
         .guideIcon{
             font-size:48px;
             margin-bottom:15px;
@@ -555,7 +596,14 @@
 
             <div id="timerText">60</div>
         </div>
-        <button id="homeButton">HOME</button>
+        <button class="homeButton" id="gameHomeButton">HOME</button>
+    </div>
+
+    <!-- 結果画面 -->
+    <div id="resultScreen">
+        <div id="resultTitle">RESULT</div>
+        <div id="resultScore">SCORE : 0</div>
+        <button class="homeButton" id="resultHomeButton">HOME</button>
     </div>
 
     <!-- タイトル画面 -->
@@ -603,7 +651,7 @@
 
 <script>
 
-let isPlaying = false;
+let gameState = "title"; // title, playing, result
 let gameMode = "endless"; // endless, timeAttack, survival
 const titleScreen = document.getElementById("titleScreen");
 const titleBest = document.getElementById("titleBest");
@@ -772,7 +820,7 @@ timerGauge.style.strokeDasharray =
 
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
-    isPlaying = true;
+    gameState = "playing";
     titleScreen.style.display = "none";
     gameMode = modes[modeIndex].id;
     if (gameMode === "timeAttack") {
@@ -788,20 +836,22 @@ startButton.addEventListener("click", () => {
         flappyContainer.style.height = "40vh";
     });
 });
-const homeButton = document.getElementById("homeButton");
-homeButton.addEventListener("click", () => {
-    isPlaying = false;
+document.querySelectorAll(".homeButton")
+    .forEach(button => {
+        button.addEventListener("click", goHome);
+    });
+
+function goHome() {
+    gameState = "title";
     titleScreen.style.display = "flex";
-    gameMode = modes[modeIndex].id;
-    if (gameMode === "timeAttack") {
-        document.getElementById("timer").style.display = "none";
-    }
-    updateModeDisplay();
+    resultScreen.style.display = "none";
+    timer.style.display = "none";
+
     requestAnimationFrame(() => {
         gameContainer.style.height = "100vh";
         flappyContainer.style.height = "0";
     });
-});
+}
 
 let gravity = 9.8;
 const frameRate = 60 // 毎秒
@@ -1335,7 +1385,7 @@ setInterval(() => {
     const deltaTime = (now - lastTime) / 1000; // 秒
     lastTime = now;
 
-    if (isPlaying) {
+    if (gameState === "playing") {
         if (now - lastClickTime > comboLimit) {
             combo = 0;
         }
@@ -1362,7 +1412,7 @@ setInterval(() => {
         isUpdatingBest = false;
     }
 
-    if (isPlaying && gameMode === "timeAttack") {
+    if (gameState === "playing" && gameMode === "timeAttack") {
         remainTime = Math.max(0, remainTime - deltaTime);
 
         const ratio = remainTime / 60;
@@ -1372,6 +1422,13 @@ setInterval(() => {
 
         timerText.textContent =
             Math.ceil(remainTime);
+        if (remainTime <= 0) {
+            gameState = "result";
+            document.getElementById("timer").style.display = "none";
+            document.getElementById("resultScreen").style.display = "flex";
+            document.getElementById("resultScore").textContent =
+                `SCORE : ${Math.floor(score)}`;
+        }
 
     }
     
