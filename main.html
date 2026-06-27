@@ -374,7 +374,7 @@
         }
 
         #resultTitle{
-            font-size:48px;
+            font-size:56px;
             font-weight:bold;
             color:white;
 
@@ -383,7 +383,15 @@
         }
 
         #resultScore{
-            font-size:24px;
+            font-size:40px;
+            color:white;
+
+            text-shadow:
+                0 0 10px rgba(255,255,255,0.5);
+        }
+
+        #resultBest{
+            font-size:28px;
             color:white;
 
             text-shadow:
@@ -603,6 +611,7 @@
     <div id="resultScreen">
         <div id="resultTitle">RESULT</div>
         <div id="resultScore">SCORE : 0</div>
+        <div id="resultBest">BEST SCORE : 0</div> <!-- モードごとのベストスコア -->
         <button class="homeButton" id="resultHomeButton">HOME</button>
     </div>
 
@@ -714,6 +723,8 @@ const bestLine = document.getElementById("flappyBestLine");
 const bestLabel = document.getElementById("flappyBestLabel");
 const bestIndicator = document.getElementById("flappyBestIndicator");
 
+const resultScreen = document.getElementById("resultScreen");
+
 const windCanvas = document.getElementById("flappyWind");
 const wctx = windCanvas.getContext("2d");
 function resizeWind() {
@@ -806,6 +817,8 @@ modeNext.addEventListener("click", () => {
 
 let remainTime = 60;
 
+const timer = document.getElementById("timer");
+
 const timerGauge =
     document.getElementById("timerGauge");
 
@@ -826,9 +839,9 @@ startButton.addEventListener("click", () => {
     if (gameMode === "timeAttack") {
         remainTime = 60;
         timerGauge.style.strokeDashoffset = 0;
-        document.getElementById("timer").style.display = "block";
+        timer.style.display = "block";
     } else {
-        document.getElementById("timer").style.display = "none";
+        timer.style.display = "none";
     }
     updateModeDisplay();
     requestAnimationFrame(() => {
@@ -846,7 +859,8 @@ function goHome() {
     titleScreen.style.display = "flex";
     resultScreen.style.display = "none";
     timer.style.display = "none";
-
+    runBestScore = 0;
+    updateModeDisplay();
     requestAnimationFrame(() => {
         gameContainer.style.height = "100vh";
         flappyContainer.style.height = "0";
@@ -857,12 +871,13 @@ let gravity = 9.8;
 const frameRate = 60 // 毎秒
 let lastTime = Date.now(); // フレーム間の正確な時間測定用
 
-let score = 0;
+let score = 0; // 現在のスコア
+let runBestScore = 0; // この回のベストスコア
 const bestScores = {
     endless: 0,
     timeAttack: 0,
     survival: 0
-};
+}; // モードごとのベストスコア
 let isUpdatingBest = false;
 let scoreVel = 0; // score increase per second
 let flappyVelX = 0;
@@ -1324,7 +1339,7 @@ function drawFlappyScore(score) {
 }
 function drawBestLine() {
 
-    const diff = bestScores[gameMode] - score;
+    const diff = runBestScore - score;
 
     const y =
         diff *
@@ -1398,10 +1413,12 @@ setInterval(() => {
             score = 0;
             scoreVel = 0;
         }
-        if (score > bestScores[gameMode]) {
+        if (score > runBestScore ) {
             isUpdatingBest = true;
-            bestScores[gameMode] = score;
-            titleBest.textContent = `BEST : ${Math.floor(bestScores[gameMode])}`;
+            runBestScore = score;
+            if (runBestScore > bestScores[gameMode]) {
+                bestScores[gameMode] = runBestScore;
+            }
         } else {
             isUpdatingBest = false;
         }
@@ -1425,9 +1442,11 @@ setInterval(() => {
         if (remainTime <= 0) {
             gameState = "result";
             document.getElementById("timer").style.display = "none";
-            document.getElementById("resultScreen").style.display = "flex";
+            resultScreen.style.display = "flex";
             document.getElementById("resultScore").textContent =
-                `SCORE : ${Math.floor(score)}`;
+                `SCORE : ${Math.floor(runBestScore)}`;
+            document.getElementById("resultBest").textContent =
+                `BEST SCORE : ${Math.floor(bestScores[gameMode])}`;
         }
 
     }
