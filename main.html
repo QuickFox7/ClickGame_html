@@ -224,6 +224,84 @@
             
             z-index: 70;
         }
+
+        #flappyHigh{
+            position:absolute;
+            top:50%;
+            left:0;
+            width:100%;
+            z-index:60;
+            pointer-events:none;
+        }
+        /* 通常（赤） */
+        .high-normal #flappyHighLine{
+            width:100%;
+            height:2px;
+            background:#ff4444;
+        }
+        .high-normal #flappyHighLabel{
+            position:absolute;
+            left:40%;
+            top:0;
+
+            transform:translate(-50%, -50%);
+
+            background:rgba(255,80,80,0.9);
+            color:white;
+
+            padding:4px 10px;
+            border-radius:10px;
+
+            font-size:14px;
+            font-weight:bold;
+
+            white-space:nowrap;
+        }
+
+        /* 更新中（金） */
+        .high-updating #flappyHighLine{
+            width:100%;
+            height:2px;
+            background:gold;
+        }
+        .high-updating #flappyHighLabel{
+            position:absolute;
+            left:40%;
+            top:0;
+
+            transform:translate(-50%, -50%);
+
+            background:linear-gradient(45deg, gold, orange);
+            color:#222;
+
+            padding:4px 10px;
+            border-radius:10px;
+
+            font-size:14px;
+            font-weight:bold;
+
+            white-space:nowrap;
+        }
+
+        #flappyHighIndicator{
+            position:absolute;
+            top:52px;
+            left:60%;
+            transform:translateX(-50%);
+            background:rgba(0,0,0,0.6);
+            color:white;
+
+            padding:6px 12px;
+            border-radius:20px;
+
+            font-size:14px;
+            font-weight:bold;
+
+            z-index:20;
+            pointer-events:none;
+            display:none;
+        }
+
         #flappyBest{
             position:absolute;
             top:50%;
@@ -578,6 +656,11 @@
         <div id="flappyGround"></div>
         <canvas id="flappyWind"></canvas>
         <div id="flappyScore">0</div>
+        <div id="flappyHigh">
+            <div id="flappyHighLine"></div>
+            <div id="flappyHighLabel">今回のハイスコア</div>
+        </div>
+        <div id="flappyHighIndicator">ハイスコアまで </div>
         <div id="flappyBest">
             <div id="flappyBestLine"></div>
             <div id="flappyBestLabel">ベストスコア</div>
@@ -611,7 +694,7 @@
     <div id="resultScreen">
         <div id="resultTitle">RESULT</div>
         <div id="resultScore">SCORE : 0</div>
-        <div id="resultBest">BEST SCORE : 0</div> <!-- モードごとのベストスコア -->
+        <div id="resultBest">過去のベストスコア : 0</div> <!-- モードごとのベストスコア -->
         <button class="homeButton" id="resultHomeButton">HOME</button>
     </div>
 
@@ -717,6 +800,11 @@ const flappyBgSky = document.getElementById("flappyBgSky");
 const flappyChar = document.getElementById("flappyChar");
 const flappyGround = document.getElementById("flappyGround");
 const flappyScore = document.getElementById("flappyScore");
+const high = document.getElementById("flappyHigh");
+high.classList.add("high-normal");
+const highLine = document.getElementById("flappyHighLine");
+const highLabel = document.getElementById("flappyHighLabel");
+const highIndicator = document.getElementById("flappyHighIndicator");
 const best = document.getElementById("flappyBest");
 best.classList.add("best-normal");
 const bestLine = document.getElementById("flappyBestLine");
@@ -1337,9 +1425,71 @@ function drawFlappyGround(score) {
 function drawFlappyScore(score) {
     flappyScore.textContent = Math.floor(score);
 }
-function drawBestLine() {
+function drawHighLine() {
 
     const diff = runBestScore - score;
+
+    const y =
+        diff *
+        FLAPPY_PX_PER_UNIT *
+        (1 / flappyCameraZoom);
+
+    // カメラの高さ
+    const camHeight =
+        flappyContainer.clientHeight /
+        FLAPPY_PX_PER_UNIT *
+        (1 / flappyCameraZoom);
+
+    const isVisible =
+        diff <= camHeight / 2 &&
+        diff >= -camHeight / 2;
+
+    // ===== 表示切り替え =====
+    if (isVisible) {
+        // 通常表示（線＋ラベル）
+        if (runBestScore < bestScores[gameMode]) {
+            high.style.display = "block";
+        } else {
+            high.style.display = "none";
+        }
+        highIndicator.style.display = "none";
+
+        high.style.transform = `translateY(${-y}px)`;
+
+    } else {
+        // 画面外
+        high.style.display = "none";
+
+        // 上にあるときだけ表示
+        if (diff > 0) {
+            highIndicator.style.display = "block";
+
+            highIndicator.textContent =
+                `↑ ハイスコアまで ${Math.floor(diff)}`;
+        } else {
+            highIndicator.style.display = "none";
+        }
+    }
+
+    // ===== 色変更 =====
+    // const isUpdatingBest = score >= bestScore;
+
+    if (isUpdatingBest) {
+        high.classList.add("high-updating");
+        high.classList.remove("high-normal");
+
+        highLabel.textContent = "ハイスコア更新中！";
+    } else {
+        high.classList.add("high-normal");
+        high.classList.remove("high-updating");
+
+        highLabel.textContent = "今回のハイスコア";
+    }
+}
+
+function drawBestLine() {
+
+    const diff = bestScores[gameMode] - score;
 
     const y =
         diff *
@@ -1446,7 +1596,7 @@ setInterval(() => {
             document.getElementById("resultScore").textContent =
                 `SCORE : ${Math.floor(runBestScore)}`;
             document.getElementById("resultBest").textContent =
-                `BEST SCORE : ${Math.floor(bestScores[gameMode])}`;
+                `過去のベストスコア : ${Math.floor(bestScores[gameMode])}`;
         }
 
     }
@@ -1462,6 +1612,7 @@ setInterval(() => {
     drawStars(deltaTime);
     drawFlappyGround(score);
     drawFlappyScore(score);
+    drawHighLine();
     drawBestLine();
     spawnWind(scoreVel, deltaTime);
     drawWind(scoreVel, deltaTime);
