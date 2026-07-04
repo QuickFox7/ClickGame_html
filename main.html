@@ -429,6 +429,30 @@
                 0 0 8px rgba(255,255,255,0.8);
         }
 
+        #hitPointContainer{
+            display:none;
+            position:absolute;
+            top:20px;
+            right:20px;
+            
+            text-align:center;
+
+            z-index:99;
+        }
+
+        #hitPointText{
+            margin-bottom:4px;
+            font-size:24px;
+            font-weight:bold;
+
+            color:red;
+        }
+
+        #hitPointIcon{
+            font-size:32px;
+            margin-top:4px;
+        }
+
         #gameHomeButton{
             top:10px;
             left:10px;
@@ -695,6 +719,10 @@
 
             <div id="timerText">60</div>
         </div>
+        <div id="hitPointContainer">
+            <div id="hitPointText">LIFE</div>
+            <div id="hitPointIcon">❤️❤️❤️</div>
+        </div>
         <button class="homeButton" id="gameHomeButton">HOME</button>
     </div>
 
@@ -928,6 +956,11 @@ const circumference =
 timerGauge.style.strokeDasharray =
     circumference;
 
+let hitPoint = 3;
+const hitPointContainer = document.getElementById("hitPointContainer");
+const hitPointText = document.getElementById("hitPointText");
+const hitPointIcon = document.getElementById("hitPointIcon");
+
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
     gameState = "playing";
@@ -937,8 +970,16 @@ startButton.addEventListener("click", () => {
         remainTime = 60;
         timerGauge.style.strokeDashoffset = 0;
         timer.style.display = "block";
+        hitPointContainer.style.display = "none";
+    } else if (gameMode === "survival") {
+        hitPointContainer.style.display = "block";
+        hitPoint = 3;
+        hitPointText.textContent = "LIFE";
+        hitPointIcon.textContent = "❤️❤️❤️";
+        timer.style.display = "none";
     } else {
         timer.style.display = "none";
+        hitPointContainer.style.display = "none";
     }
     updateModeDisplay();
     requestAnimationFrame(() => {
@@ -956,6 +997,7 @@ function goHome() {
     titleScreen.style.display = "flex";
     resultScreen.style.display = "none";
     timer.style.display = "none";
+    hitPointContainer.style.display = "none";
     runBestScore = 0;
     updateModeDisplay();
     requestAnimationFrame(() => {
@@ -1600,7 +1642,7 @@ setInterval(() => {
             Math.ceil(remainTime);
         if (remainTime <= 0) {
             gameState = "result";
-            document.getElementById("timer").style.display = "none";
+            timer.style.display = "none";
             resultScreen.style.display = "flex";
             document.getElementById("resultScore").textContent =
                 `SCORE : ${Math.floor(runBestScore)}`;
