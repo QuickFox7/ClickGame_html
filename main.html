@@ -476,6 +476,14 @@
                 0 0 10px rgba(255,255,255,0.5);
         }
 
+        #resultNewRecord{
+            font-size:28px;
+            color:gold;
+
+            text-shadow:
+                0 0 10px rgba(255,255,255,0.5);
+        }
+
         #resultHomeButton{
             position:relative;
         }
@@ -695,6 +703,7 @@
         <div id="resultTitle">RESULT</div>
         <div id="resultScore">SCORE : 0</div>
         <div id="resultBest">過去のベストスコア : 0</div> <!-- モードごとのベストスコア -->
+        <div id="resultNewRecord" style="display:none;">NEW RECORD!</div>
         <button class="homeButton" id="resultHomeButton">HOME</button>
     </div>
 
@@ -1597,6 +1606,11 @@ setInterval(() => {
                 `SCORE : ${Math.floor(runBestScore)}`;
             document.getElementById("resultBest").textContent =
                 `過去のベストスコア : ${Math.floor(bestScores[gameMode])}`;
+            if (runBestScore >= bestScores[gameMode]) {
+                document.getElementById("resultNewRecord").style.display = "block";
+            } else {
+                document.getElementById("resultNewRecord").style.display = "none";
+            }
         }
 
     }
