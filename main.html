@@ -1301,6 +1301,8 @@ function createFly() {
         t: 0,
         d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
         state: "moving", // moving or stopped or turning
+        isOnWatermelon: false,
+        timeOnWatermelon: 0,
         el: flyEl
     };
 
@@ -1654,7 +1656,47 @@ setInterval(() => {
                 document.getElementById("resultNewRecord").style.display = "none";
             }
         }
-
+    }
+    if (gameState === "playing" && gameMode === "survival") {
+        if (hitPoint > 0) {
+            const rect = watermelon.getBoundingClientRect();
+            for (const fly of flies) {
+                const flyCenterX = fly.x + fly.el.offsetWidth / 2;
+                const flyCenterY = fly.y + fly.el.offsetHeight / 2;
+                fly.isOnWatermelon = (
+                    flyCenterX >= rect.left &&
+                    flyCenterX <= rect.right &&
+                    flyCenterY >= rect.top &&
+                    flyCenterY <= rect.bottom);
+                if (fly.isOnWatermelon) {
+                    fly.timeOnWatermelon += deltaTime;
+                } else {
+                    fly.timeOnWatermelon = 0;
+                }
+                if (fly.timeOnWatermelon >= 1) {
+                    hitPoint--;
+                    fly.isOnWatermelon = false;
+                    fly.timeOnWatermelon = 0;
+                    setRandomPosition(fly);
+                }
+            }
+            hitPointContainer.style.display = "block";
+            hitPointText.textContent = "LIFE";
+            hitPointIcon.textContent = "❤️".repeat(hitPoint);
+        } else {
+            gameState = "result";
+            hitPointContainer.style.display = "none";
+            resultScreen.style.display = "flex";
+            document.getElementById("resultScore").textContent =
+                `SCORE : ${Math.floor(runBestScore)}`;
+            document.getElementById("resultBest").textContent =
+                `過去のベストスコア : ${Math.floor(bestScores[gameMode])}`;
+            if (runBestScore >= bestScores[gameMode]) {
+                document.getElementById("resultNewRecord").style.display = "block";
+            } else {
+                document.getElementById("resultNewRecord").style.display = "none";
+            }
+        }
     }
     
     checkResize();
