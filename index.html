@@ -64,6 +64,15 @@
             filter: drop-shadow(0 8px 8px rgba(0,0,0,0.25));
         }
 
+        #eatDisplayCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 40;
+        }
+
         #comboBorder {
             position: absolute;
             inset: 0;
@@ -672,8 +681,9 @@
         <div id="flyBackGround">
             <img id="veranda" src="veranda.png">
         </div>
-        <img id="watermelon" src="watermelon.png">
         <img id="ramune" src="ramune.png">
+        <img id="watermelon" src="watermelon.png">
+        <canvas id="eatDisplayCanvas"></canvas>
         <svg id="comboBorder">
             <rect id="comboBorderRect" />
         </svg>
@@ -805,6 +815,14 @@ function clampFliesToScreen() {
         fly.el.style.top = `${fly.y}px`; // topのpx値を更新
     }
 }
+const EAT_TIME = 1.5; // ハエがスイカを食べるのにかかる時間（秒）
+const eatDisplayCanvas = document.getElementById("eatDisplayCanvas");
+const eatDisplayCtx = eatDisplayCanvas.getContext("2d");
+function resizeEatDisplay() {
+    eatDisplayCanvas.width = gameContainer.clientWidth;
+    eatDisplayCanvas.height = gameContainer.clientHeight;
+}
+resizeEatDisplay();
 const comboBorder = document.getElementById("comboBorder");
 const comboBorderRect = document.getElementById("comboBorderRect");
 function resizeComboBorder() {
@@ -884,6 +902,7 @@ function resizeAll() {
     resizeComboBorder();
     resizeWind();
     resizeStars();
+    resizeEatDisplay();
     clampFliesToScreen();
 }
 
@@ -1385,6 +1404,55 @@ function updateFlies(dt) {
     }
 }
 
+function getDangerColor(ratio) {
+    if (ratio > 0.75) {
+        return "#ffffff";   // 白
+    } else if (ratio > 0.5) {
+        return "#ffff00";   // 黄
+    } else if (ratio > 0.25) {
+        return "#ff9900";   // オレンジ
+    } else {
+        return "#ff0000";   // 赤
+    }
+}
+
+function drawEatGauge(ctx, x, y, radius, remainingRatio) {
+
+    // 背景
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#444";
+    ctx.stroke();
+
+    // 色
+    ctx.strokeStyle = getDangerColor(remainingRatio);
+
+    // 残り時間なので減っていく
+    ctx.beginPath();
+    ctx.arc(
+        x,
+        y,
+        radius,
+        -Math.PI / 2,
+        -Math.PI / 2 + remainingRatio * Math.PI * 2
+    );
+    ctx.stroke();
+
+    // 「！」の描画
+    ctx.save();
+    ctx.fillStyle = "yellow";
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+
+    ctx.font = `bold ${Math.floor(radius*1.9)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.strokeText("!", x, y);
+    ctx.fillText("!", x, y);
+    ctx.restore();
+}
+
 function drawComboGauge() {
 
     if (combo === 0) {
@@ -1660,6 +1728,7 @@ setInterval(() => {
     if (gameState === "playing" && gameMode === "survival") {
         if (hitPoint > 0) {
             const rect = watermelon.getBoundingClientRect();
+            eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
             for (const fly of flies) {
                 const flyCenterX = fly.x + fly.el.offsetWidth / 2;
                 const flyCenterY = fly.y + fly.el.offsetHeight / 2;
@@ -1670,14 +1739,24 @@ setInterval(() => {
                     flyCenterY <= rect.bottom);
                 if (fly.isOnWatermelon) {
                     fly.timeOnWatermelon += deltaTime;
+                    const remainingRatio =
+                        1 - fly.timeOnWatermelon / EAT_TIME;
+                    drawEatGauge(
+                        eatDisplayCtx,
+                        fly.x + 32,
+                        fly.y - 10,
+                        12,
+                        Math.max(0, remainingRatio)
+                    );
                 } else {
                     fly.timeOnWatermelon = 0;
                 }
-                if (fly.timeOnWatermelon >= 1) {
+                if (fly.timeOnWatermelon >= EAT_TIME) {
                     hitPoint--;
                     fly.isOnWatermelon = false;
                     fly.timeOnWatermelon = 0;
                     setRandomPosition(fly);
+                    eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
                 }
             }
             hitPointContainer.style.display = "block";
