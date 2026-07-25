@@ -1311,7 +1311,6 @@ function clicked(flyObj) {
     )
 
     lastClickTime = now;
-    updateStatus();
 
     // 0.15秒でズームアウト
     startZoom(flappyCameraZoom, 0.75, 0.15);
@@ -1333,7 +1332,7 @@ function createFly() {
         angleVel: 0,
         t: 0,
         d: Math.random() * 3 + 2, // 2 ~ 5秒で向きを変える
-        state: "moving", // moving or stopped or turning
+        state: "moving", // moving or stopped or turning or blocked or eating
         isOnWatermelon: false,
         timeOnWatermelon: 0,
         el: flyEl
@@ -1752,6 +1751,7 @@ setInterval(() => {
                     flyCenterY >= rect.top &&
                     flyCenterY <= rect.bottom);
                 if (fly.isOnWatermelon) {
+                    fly.state = "eating";
                     fly.timeOnWatermelon += deltaTime;
                     const remainingRatio =
                         1 - fly.timeOnWatermelon / EAT_TIME;
@@ -1767,9 +1767,15 @@ setInterval(() => {
                 }
                 if (fly.timeOnWatermelon >= EAT_TIME) {
                     hitPoint--;
-                    fly.isOnWatermelon = false;
-                    fly.timeOnWatermelon = 0;
-                    setRandomPosition(fly);
+                    // 配列から削除
+                    const index = flies.indexOf(fly);
+                    if (index !== -1) {
+                        flies.splice(index, 1);
+                    }
+                    // DOMから削除
+                    fly.el.remove();
+                    // 新しいハエを生成
+                    createFly();
                     eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
                 }
             }
