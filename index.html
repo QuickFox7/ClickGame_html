@@ -41,18 +41,6 @@
             display: block;
         }
 
-        #watermelon {
-            position: absolute;
-            width: 300px;
-            left: 50%;
-            bottom: 15%;
-            transform: translateX(-50%);
-            z-index: 10;
-            pointer-events: none;
-
-            filter: drop-shadow(0 8px 8px rgba(0,0,0,0.25));
-        }
-
         #ramune {
             position: absolute;
             width: 60px;
@@ -63,6 +51,30 @@
             pointer-events: none;
 
             filter: drop-shadow(0 8px 8px rgba(0,0,0,0.25));
+        }
+
+        #plate {
+            position: absolute;
+            width: 300px;
+            left: 50%;
+            bottom: 15%;
+            transform: translateX(-50%);
+            z-index: 15;
+            pointer-events: none;
+
+            filter: drop-shadow(0 8px 8px rgba(0,0,0,0.25));
+        }
+
+        #watermelon {
+            position: absolute;
+            width: 228px;
+            left: 50%;
+            bottom: calc(15% + 28.2px);
+            transform: translateX(-50%);
+            z-index: 20;
+            pointer-events: none;
+
+            filter: drop-shadow(1px 6px 5px rgba(0,0,0,0.8));
         }
 
         #eatDisplayCanvas {
@@ -683,6 +695,7 @@
             <img id="veranda" src="veranda.png">
         </div>
         <img id="ramune" src="ramune.png">
+        <img id="plate" src="plate.png">
         <img id="watermelon" src="watermelon.png">
         <canvas id="eatDisplayCanvas"></canvas>
         <svg id="comboBorder">
