@@ -1410,6 +1410,7 @@ function updateFlies(dt) {
         const wobble =
             fly.state === "moving" ? Math.sin(fly.t * 50) * 0.1 :
             fly.state === "turning" ? Math.sin(fly.t * 50) * 0.05 :
+            fly.state === "eating" ? Math.sin(fly.t * 40) * 0.03 :
             0;
 
         fly.el.style.transform =
@@ -1763,6 +1764,9 @@ setInterval(() => {
                         Math.max(0, remainingRatio)
                     );
                 } else {
+                    if (fly.state === "eating") {
+                        fly.state = "moving";
+                    }
                     fly.timeOnWatermelon = 0;
                 }
                 if (fly.timeOnWatermelon >= EAT_TIME) {
