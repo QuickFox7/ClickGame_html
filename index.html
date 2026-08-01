@@ -77,6 +77,15 @@
             filter: drop-shadow(1px 6px 5px rgba(0,0,0,0.8));
         }
 
+		#splashCanvas {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			z-index: 30;
+		}
+
         #eatDisplayCanvas {
             position: absolute;
             inset: 0;
@@ -697,6 +706,7 @@
         <img id="ramune" src="ramune.png">
         <img id="plate" src="plate.png">
         <img id="watermelon" src="watermelon.png">
+		<canvas id="splashCanvas"></canvas>
         <canvas id="eatDisplayCanvas"></canvas>
         <svg id="comboBorder">
             <rect id="comboBorderRect" />
@@ -830,6 +840,61 @@ function clampFliesToScreen() {
     }
 }
 const EAT_TIME = 1.5; // ハエがスイカを食べるのにかかる時間（秒）
+const splashCanvas = document.getElementById("splashCanvas");
+const splashCtx = splashCanvas.getContext("2d");
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+function resizeSplashCanvas() {
+    splashCanvas.width = gameContainer.clientWidth * DPR;
+    splashCanvas.height = gameContainer.clientHeight * DPR;
+
+    splashCanvas.style.width = gameContainer.clientWidth + "px";
+    splashCanvas.style.height = gameContainer.clientHeight + "px";
+
+    splashCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+const COLOR = [255,70,70];
+const GRAV = 0.18;
+const particles = [];
+// 細かいしぶきの粒
+class Speck {
+	constructor(x, y, vx, vy, r) {
+		this.x = x; this.y = y;
+		this.vx = vx; this.vy = vy;
+		this.r = r;
+		this.life = 1;
+		this.decay = 0.012 + Math.random() * 0.02;
+	}
+	update() {
+		this.vy += GRAV * 0.8;
+		this.x += this.vx;
+		this.y += this.vy;
+		this.vx *= 0.99;
+		this.life -= this.decay;
+	}
+	draw() {
+		const radius = this.r * this.life;
+		if (radius <= 0) return;
+
+		splashCtx.beginPath();
+		splashCtx.fillStyle =
+			`rgba(${COLOR[0]},${COLOR[1]},${COLOR[2]},${this.life})`;
+		splashCtx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+		splashCtx.fill();
+	}
+}
+function spawnJuiceSpecks(x, y) {
+    for (let i = 0; i < 3; i++) {
+        particles.push(
+            new Speck(
+                x,
+                y,
+                (Math.random()-0.5)*2,
+                -Math.random()*2,
+                1+Math.random()*1.5
+            )
+        );
+    }
+}
 const eatDisplayCanvas = document.getElementById("eatDisplayCanvas");
 const eatDisplayCtx = eatDisplayCanvas.getContext("2d");
 function resizeEatDisplay() {
@@ -918,6 +983,7 @@ function resizeAll() {
     resizeStars();
     resizeEatDisplay();
     clampFliesToScreen();
+    resizeSplashCanvas();
 }
 
 let prevWidth = gameContainer.clientWidth;
@@ -1335,6 +1401,7 @@ function createFly() {
         state: "moving", // moving or stopped or turning or blocked or eating
         isOnWatermelon: false,
         timeOnWatermelon: 0,
+		speckTimer: 0, // 果汁エフェクトの間隔
         el: flyEl
     };
 
@@ -1403,7 +1470,19 @@ function updateFlies(dt) {
                 fly.state = "blocked";
                 fly.angleVel = 0;
             }
-        }
+        } else if (fly.state === "eating") {
+			fly.speckTimer += dt;
+
+			if (fly.speckTimer > 0.12) {
+				fly.speckTimer = 0;
+				const centerX = fly.x + fly.el.offsetWidth / 2;
+				const centerY = fly.y + fly.el.offsetHeight / 2;
+
+				const x = centerX + Math.cos(fly.angle) * fly.el.offsetHeight*0.5;
+				const y = centerY + Math.sin(fly.angle) * fly.el.offsetHeight*0.5;
+				spawnJuiceSpecks(x, y);
+			}
+		}
 
         fly.el.style.left = fly.x + "px";
         fly.el.style.top = fly.y + "px";
@@ -1414,7 +1493,7 @@ function updateFlies(dt) {
             0;
 
         fly.el.style.transform =
-            `rotate(${fly.angle + wobble + Math.PI / 2}rad)`;
+            `rotate(${fly.angle + wobble + Math.PI / 2}rad)`; // 画像は頭が上だが、右が0radなので90度回転させる
     }
 }
 
@@ -1801,6 +1880,17 @@ setInterval(() => {
             }
         }
     }
+
+	splashCtx.clearRect(0, 0, splashCanvas.width, splashCanvas.height);
+	for (let i = particles.length - 1; i >= 0; i--) {
+		const p = particles[i];
+		p.update();
+		if (p.life <= 0) {
+			particles.splice(i, 1);
+			continue;
+		}
+		p.draw();
+	}
     
     checkResize();
 
