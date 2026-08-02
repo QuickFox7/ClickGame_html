@@ -1820,16 +1820,28 @@ setInterval(() => {
     }
     if (gameState === "playing" && gameMode === "survival") {
         if (hitPoint > 0) {
+            // スイカ
             const rect = watermelon.getBoundingClientRect();
+            const melonX = rect.left + rect.width / 2;
+            const melonY = rect.top + rect.height / 2;
+            const rx = rect.width * 0.40;
+            const ry = rect.height * 0.42;
+
             eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
             for (const fly of flies) {
-                const flyCenterX = fly.x + fly.el.offsetWidth / 2;
-                const flyCenterY = fly.y + fly.el.offsetHeight / 2;
-                fly.isOnWatermelon = (
-                    flyCenterX >= rect.left &&
-                    flyCenterX <= rect.right &&
-                    flyCenterY >= rect.top &&
-                    flyCenterY <= rect.bottom);
+                // ハエの座標
+                const centerX = fly.x + fly.el.offsetWidth / 2;
+                const centerY = fly.y + fly.el.offsetHeight / 2;
+                const flyHeadX = centerX + Math.cos(fly.angle) * fly.el.offsetHeight * 0.5;
+                const flyHeadY = centerY + Math.sin(fly.angle) * fly.el.offsetHeight * 0.5;
+
+                // 楕円判定
+                const dx = flyHeadX - melonX;
+                const dy = flyHeadY - melonY;
+                fly.isOnWatermelon =
+                    (dx * dx) / (rx * rx) +
+                    (dy * dy) / (ry * ry) <= 1;
+
                 if (fly.isOnWatermelon) {
                     fly.state = "eating";
                     fly.timeOnWatermelon += deltaTime;
