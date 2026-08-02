@@ -875,12 +875,23 @@ class Speck {
 		const radius = this.r * this.life;
 		if (radius <= 0) return;
 
-		splashCtx.beginPath();
-		splashCtx.fillStyle =
-			`rgba(${COLOR[0]},${COLOR[1]},${COLOR[2]},${this.life})`;
-		splashCtx.arc(this.x, this.y, radius, 0, Math.PI * 2);
-		splashCtx.fill();
-	}
+        splashCtx.beginPath();
+        splashCtx.fillStyle = `rgba(${COLOR[0]},${COLOR[1]},${COLOR[2]},0.9)`;
+        splashCtx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        splashCtx.fill();
+
+        // 小さなハイライト
+        splashCtx.beginPath();
+        splashCtx.fillStyle = `rgba(255,255,255,0.8)`;
+        splashCtx.arc(
+            this.x - radius * 0.28,
+            this.y - radius * 0.30,
+            radius * 0.22,
+            0,
+            Math.PI * 2
+        );
+        splashCtx.fill();
+    }
 }
 function spawnJuiceSpecks(x, y) {
     for (let i = 0; i < 3; i++) {
@@ -888,9 +899,9 @@ function spawnJuiceSpecks(x, y) {
             new Speck(
                 x,
                 y,
-                (Math.random()-0.5)*2,
-                -Math.random()*2,
-                1+Math.random()*1.5
+                (Math.random()-0.5)*4,
+                -Math.random()*4,
+                3+Math.random()*1.5
             )
         );
     }
