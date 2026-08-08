@@ -1873,6 +1873,7 @@ setInterval(() => {
                 }
                 if (fly.timeOnWatermelon >= EAT_TIME) {
                     hitPoint--;
+                    combo = 0;
                     // 配列から削除
                     const index = flies.indexOf(fly);
                     if (index !== -1) {
