@@ -1888,7 +1888,7 @@ setInterval(() => {
             }
             hitPointContainer.style.display = "block";
             hitPointText.textContent = "LIFE";
-            hitPointIcon.textContent = "❤️".repeat(hitPoint);
+            hitPointIcon.textContent = "❤️".repeat(hitPoint) + "🩶".repeat(3 - hitPoint);
         } else {
             gameState = "result";
             hitPointContainer.style.display = "none";
