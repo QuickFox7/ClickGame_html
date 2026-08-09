@@ -816,6 +816,7 @@
 
 let gameState = "title"; // title, playing, result
 let gameMode = "endless"; // endless, timeAttack, survival
+let survivalState = "normal"; // normal, raidBanner, flyRaid
 const titleScreen = document.getElementById("titleScreen");
 const titleBest = document.getElementById("titleBest");
 const gameContainer = document.getElementById("gameContainer");
@@ -1455,7 +1456,28 @@ function isFlyOut(fly, speed, dt) {
     return { isOut, nextX, nextY };
 }
 
-function updateFlies(dt) {
+function isFlyOnWatermelon(fly) {
+    // スイカ
+    const rect = watermelon.getBoundingClientRect();
+    const melonX = rect.left + rect.width / 2;
+    const melonY = rect.top + rect.height / 2;
+    const rx = rect.width * 0.40;
+    const ry = rect.height * 0.42;
+
+    // ハエの頭の位置を計算
+    const centerX = fly.x + fly.el.offsetWidth / 2;
+    const centerY = fly.y + fly.el.offsetHeight / 2;
+    const flyHeadX = centerX + Math.cos(fly.angle) * fly.el.offsetHeight * 0.5;
+    const flyHeadY = centerY + Math.sin(fly.angle) * fly.el.offsetHeight * 0.5;
+
+    // 楕円判定
+    const dx = flyHeadX - melonX;
+    const dy = flyHeadY - melonY;
+    const isOn = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
+    return isOn;
+}
+
+function updateNormalFlyMovement(dt) {
     const speed = 100; // px/秒
 
     for (const fly of flies) {
@@ -1481,7 +1503,51 @@ function updateFlies(dt) {
                 fly.state = "blocked";
                 fly.angleVel = 0;
             }
-        } else if (fly.state === "eating") {
+        }
+    }
+}
+
+function updateRaidFlyMovement(dt) {
+    const speed = 120;
+
+    const targetX =
+        watermelon.getBoundingClientRect().left +
+        watermelon.offsetWidth / 2;
+
+    const targetY =
+        watermelon.getBoundingClientRect().top +
+        watermelon.offsetHeight / 2;
+
+    for (const fly of flies) {
+        fly.t += dt;
+        if (fly.isOnWatermelon) {
+            fly.state = "eating";
+        } else {
+            fly.state = "moving";
+        }
+
+        if (fly.state === "moving") {
+            centerX = fly.x + fly.el.offsetWidth / 2;
+            centerY = fly.y + fly.el.offsetHeight / 2;
+
+            // 移動方向を固定
+            fly.angle = Math.atan2(targetY - centerY, targetX - centerX);
+
+            fly.x += Math.cos(fly.angle) * speed * dt;
+            fly.y += Math.sin(fly.angle) * speed * dt;
+        }
+    }
+}
+
+function updateFlies(dt) {
+    if (gameState === "playing" && gameMode === "survival" && survivalState === "flyRaid") {
+            updateRaidFlyMovement(dt);
+        } else {
+            updateNormalFlyMovement(dt);
+        }
+
+    for (const fly of flies) {
+        if (fly.state === "eating") {
 			fly.speckTimer += dt;
 
 			if (fly.speckTimer > 0.12) {
@@ -1831,27 +1897,10 @@ setInterval(() => {
     }
     if (gameState === "playing" && gameMode === "survival") {
         if (hitPoint > 0) {
-            // スイカ
-            const rect = watermelon.getBoundingClientRect();
-            const melonX = rect.left + rect.width / 2;
-            const melonY = rect.top + rect.height / 2;
-            const rx = rect.width * 0.40;
-            const ry = rect.height * 0.42;
-
             eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
             for (const fly of flies) {
-                // ハエの座標
-                const centerX = fly.x + fly.el.offsetWidth / 2;
-                const centerY = fly.y + fly.el.offsetHeight / 2;
-                const flyHeadX = centerX + Math.cos(fly.angle) * fly.el.offsetHeight * 0.5;
-                const flyHeadY = centerY + Math.sin(fly.angle) * fly.el.offsetHeight * 0.5;
-
-                // 楕円判定
-                const dx = flyHeadX - melonX;
-                const dy = flyHeadY - melonY;
-                fly.isOnWatermelon =
-                    (dx * dx) / (rx * rx) +
-                    (dy * dy) / (ry * ry) <= 1;
+                // ハエがスイカの上にいるか判定
+                fly.isOnWatermelon = isFlyOnWatermelon(fly);
 
                 if (fly.isOnWatermelon) {
                     fly.state = "eating";
