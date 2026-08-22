@@ -95,6 +95,34 @@
             z-index: 40;
         }
 
+        #raidBanner {
+            position: absolute;
+            inset: 0;
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #raidBannerText {
+            padding: 18px 50px;
+
+            font-size: clamp(28px, 6vw, 52px);
+            font-weight: bold;
+            color: white;
+
+            background: rgba(213, 117, 0, 0.75);
+            border: 3px solid white;
+            border-radius: 12px;
+
+            text-align: center;
+
+            box-shadow: 0 0 20px rgba(213, 117, 0, 0.5);
+        }
+
         #comboBorder {
             position: absolute;
             inset: 0;
@@ -708,6 +736,9 @@
         <img id="watermelon" src="watermelon.png">
 		<canvas id="splashCanvas"></canvas>
         <canvas id="eatDisplayCanvas"></canvas>
+        <div id="raidBanner" style="display:none;">
+            <div id="raidBannerText">ハエの大群が襲来！</div>
+        </div>
         <svg id="comboBorder">
             <rect id="comboBorderRect" />
         </svg>
@@ -817,6 +848,12 @@
 let gameState = "title"; // title, playing, result
 let gameMode = "endless"; // endless, timeAttack, survival
 let survivalState = "normal"; // normal, raidBanner, flyRaid
+
+const RAID_INTERVAL = 60;      // 次の襲来までの時間（秒）
+let timeSinceLastRaid = 0;             // 通常状態になってからの経過時間
+const RAID_BANNER_DURATION = 5; // バナー表示時間（秒）
+let raidBannerTimer = 0;        // バナー表示開始からの経過時間
+
 const titleScreen = document.getElementById("titleScreen");
 const titleBest = document.getElementById("titleBest");
 const gameContainer = document.getElementById("gameContainer");
@@ -1508,7 +1545,7 @@ function updateNormalFlyMovement(dt) {
 }
 
 function updateRaidFlyMovement(dt) {
-    const speed = 120;
+    const speed = 60;
 
     const targetX =
         watermelon.getBoundingClientRect().left +
@@ -1527,8 +1564,8 @@ function updateRaidFlyMovement(dt) {
         }
 
         if (fly.state === "moving") {
-            centerX = fly.x + fly.el.offsetWidth / 2;
-            centerY = fly.y + fly.el.offsetHeight / 2;
+            const centerX = fly.x + fly.el.offsetWidth / 2;
+            const centerY = fly.y + fly.el.offsetHeight / 2;
 
             // 移動方向を固定
             fly.angle = Math.atan2(targetY - centerY, targetX - centerX);
@@ -1897,6 +1934,32 @@ setInterval(() => {
     }
     if (gameState === "playing" && gameMode === "survival") {
         if (hitPoint > 0) {
+
+            if (survivalState === "normal") {
+                timeSinceLastRaid += deltaTime;　// 次の襲来までの時間を進める
+                if (timeSinceLastRaid >= RAID_INTERVAL) {
+                    flies.forEach(fly => fly.el.remove());
+                    flies.length = 0;
+                    // バナー表示へ
+                    survivalState = "raidBanner";
+                    // バナー用タイマーをリセット
+                    raidBannerTimer = 0;
+                    // バナー表示
+                    raidBanner.style.display = "flex";
+                }
+            } else if (survivalState === "raidBanner") {
+                raidBannerTimer += deltaTime;　// バナー表示時間を進める
+                if (raidBannerTimer >= RAID_BANNER_DURATION) {
+                    for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
+                        createFly();
+                    }
+                    // バナーを消す
+                    raidBanner.style.display = "none";
+                    // 襲来開始
+                    survivalState = "flyRaid";
+                }
+            }
+
             eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
             for (const fly of flies) {
                 // ハエがスイカの上にいるか判定
