@@ -1169,7 +1169,7 @@ let isUpdatingBest = false;
 let scoreVel = 0; // score increase per second
 let flappyVelX = 0;
 const FLAPPY_PX_PER_UNIT = 80; // フラッピーゾーン独自の長さをpxに変換
-let lastClickTime = 0;
+let lastClickTime = 0; // ミリ秒
 let combo = 0;
 let comboLimit = 3000; // ミリ秒
 let flappyAngle = 0;
@@ -1879,26 +1879,31 @@ setInterval(() => {
     lastTime = now;
 
     if (gameState === "playing") {
-        if (now - lastClickTime > comboLimit) {
-            combo = 0;
-        }
+        if (survivalState === "raidBanner") {
+            lastClickTime += deltaTime * 1000; // ミリ秒に変換
 
-        // 減衰量の計算
-        scoreVel -= gravity * deltaTime;
-        score += scoreVel * deltaTime;
-
-        if (score <= 0) {
-            score = 0;
-            scoreVel = 0;
-        }
-        if (score > runBestScore ) {
-            isUpdatingBest = true;
-            runBestScore = score;
-            if (runBestScore > bestScores[gameMode]) {
-                bestScores[gameMode] = runBestScore;
-            }
         } else {
-            isUpdatingBest = false;
+            if (now - lastClickTime > comboLimit) {
+                combo = 0;
+            }
+
+            // 減衰量の計算
+            scoreVel -= gravity * deltaTime;
+            score += scoreVel * deltaTime;
+
+            if (score <= 0) {
+                score = 0;
+                scoreVel = 0;
+            }
+            if (score > runBestScore ) {
+                isUpdatingBest = true;
+                runBestScore = score;
+                if (runBestScore > bestScores[gameMode]) {
+                    bestScores[gameMode] = runBestScore;
+                }
+            } else {
+                isUpdatingBest = false;
+            }
         }
     } else {
         score = 0;
