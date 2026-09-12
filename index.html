@@ -2125,7 +2125,6 @@ setInterval(() => {
 
     drawComboGauge();
 
-    updateZoom(deltaTime);
     updateFlies(deltaTime);
     updateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
@@ -2134,8 +2133,12 @@ setInterval(() => {
     drawFlappyScore(score);
     drawHighLine();
     drawBestLine();
-    spawnWind(scoreVel, deltaTime);
-    drawWind(scoreVel, deltaTime);
+
+    if (!(gameState === "playing" && gameMode === "survival" && survivalState === "raidBanner")) {
+        updateZoom(deltaTime);
+        spawnWind(scoreVel, deltaTime);
+        drawWind(scoreVel, deltaTime);
+    }
 }, 1000/frameRate);
 
 </script>
