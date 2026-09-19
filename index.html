@@ -200,6 +200,42 @@
             }
         }
 
+        #raidClearBanner {
+            position: absolute;
+            inset: 0;
+
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            gap: 12px;
+
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #raidClearBannerText {
+            padding: 18px 50px;
+
+            font-size: clamp(28px, 6vw, 52px);
+            font-weight: bold;
+            color: white;
+
+            background: rgba(0, 128, 0, 0.75);
+            border: 3px solid white;
+            border-radius: 12px;
+
+            text-align: center;
+
+            box-shadow: 0 0 20px rgba(0, 128, 0, 0.5);
+        }
+        
+        #raidClearBannerIcon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
         #comboBorder {
             position: absolute;
             inset: 0;
@@ -827,6 +863,12 @@
                 <span>WARNING</span>
             </div>
         </div>
+        <div id="raidClearBanner">
+            <div id="raidClearBannerText">
+                <div id="raidClearBannerIcon">✔</div>
+                <div>襲来イベントクリア！</div>
+            </div>
+        </div>
         <svg id="comboBorder">
             <rect id="comboBorderRect" />
         </svg>
@@ -935,17 +977,24 @@
 
 let gameState = "title"; // title, playing, result
 let gameMode = "endless"; // endless, timeAttack, survival
-let survivalState = "normal"; // normal, raidBanner, flyRaid
+let survivalState = "normal"; // normal, raidBanner, flyRaid, raidClearBanner
 
-const RAID_INTERVAL = 60;      // 次の襲来までの時間（秒）
+const RAID_INTERVAL = 5;      // 次の襲来までの時間（秒）
 let timeSinceLastRaid = 0;             // 通常状態になってからの経過時間
 const RAID_BANNER_DURATION = 5; // バナー表示時間（秒）
 let raidBannerTimer = 0;        // バナー表示開始からの経過時間
+const RAID_CLEAR_BANNER_DURATION = 2; // 襲来イベントクリアバナー表示時間（秒）
+let raidClearBannerTimer = 0;       // 襲来イベントクリアバナー表示開始からの経過時間
 
 const titleScreen = document.getElementById("titleScreen");
 const titleBest = document.getElementById("titleBest");
 const gameContainer = document.getElementById("gameContainer");
+const raidBanner = document.getElementById("raidBanner");
+const raidClearBanner = document.getElementById("raidClearBanner");
 const INITIAL_FLY_COUNT = 1;
+let raidFlyDefeated = 0; // 襲来イベントの倒したハエの数
+let raidFlySpawned = 0; // 襲来イベントで生成されたハエの数
+const RAID_FLY_TOTAL = 15; // 襲来イベントのハエの総数
 const flies = [];
 for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
     createFly();
@@ -1208,6 +1257,15 @@ startButton.addEventListener("click", () => {
         timer.style.display = "block";
         hitPointContainer.style.display = "none";
     } else if (gameMode === "survival") {
+        survivalState = "normal";
+        timeSinceLastRaid = 0;
+        raidBannerTimer = 0;
+        raidClearBannerTimer = 0;
+        raidFlyDefeated = 0;
+        raidFlySpawned = 0;
+        raidBanner.style.display = "none";
+        raidClearBanner.style.display = "none";
+
         hitPointContainer.style.display = "block";
         hitPoint = 3;
         hitPointText.textContent = "LIFE";
@@ -1497,8 +1555,27 @@ function clicked(flyObj) {
     // DOMから削除
     flyObj.el.remove();
 
-    // 新しいハエを生成
-    createFly();
+    if (gameMode === "survival" && survivalState === "flyRaid") {
+        raidFlyDefeated++;
+
+        // すべて倒した
+        if (raidFlyDefeated >= RAID_FLY_TOTAL) {
+            survivalState = "raidClearBanner";
+            raidClearBannerTimer = 0;
+
+            raidFlyDefeated = 0;
+            raidFlySpawned = 0;
+
+            raidClearBanner.style.display = "flex";
+        } else {
+            // 次のハエを生成
+            createFly();
+            raidFlySpawned++;
+        }
+    } else {
+        // 通常時は常に新しいハエを生成
+        createFly();
+    }
 
     // スコア処理
     if (now - lastClickTime <= comboLimit || combo == 0) {
@@ -1967,8 +2044,8 @@ setInterval(() => {
     lastTime = now;
 
     if (gameState === "playing") {
-        if (survivalState === "raidBanner") {
-            lastClickTime += deltaTime * 1000; // ミリ秒に変換
+        if (survivalState === "raidBanner" || survivalState === "raidClearBanner") {
+            lastClickTime += deltaTime * 1000; // 最後にクリックした時間を進める（コンボが切れないようにする）
 
         } else {
             if (now - lastClickTime > comboLimit) {
@@ -2041,15 +2118,30 @@ setInterval(() => {
                     raidBanner.style.display = "flex";
                 }
             } else if (survivalState === "raidBanner") {
-                raidBannerTimer += deltaTime;　// バナー表示時間を進める
+                raidBannerTimer += deltaTime;
+
                 if (raidBannerTimer >= RAID_BANNER_DURATION) {
-                    for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
-                        createFly();
-                    }
-                    // バナーを消す
                     raidBanner.style.display = "none";
-                    // 襲来開始
+
+                    raidFlyDefeated = 0;
+                    raidFlySpawned = 0;
+
+                    // 最初のハエを生成
+                    createFly();
+                    raidFlySpawned++;
+
                     survivalState = "flyRaid";
+                }
+            } else if (survivalState === "raidClearBanner") {
+                raidClearBannerTimer += deltaTime;
+
+                if (raidClearBannerTimer >= RAID_CLEAR_BANNER_DURATION) {
+                    raidClearBanner.style.display = "none";
+
+                    survivalState = "normal";
+
+                    // 次の襲来までの時間をリセット
+                    timeSinceLastRaid = 0;
                 }
             }
 
