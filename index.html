@@ -992,9 +992,11 @@ const gameContainer = document.getElementById("gameContainer");
 const raidBanner = document.getElementById("raidBanner");
 const raidClearBanner = document.getElementById("raidClearBanner");
 const INITIAL_FLY_COUNT = 1;
-let raidFlyDefeated = 0; // 襲来イベントの倒したハエの数
-let raidFlySpawned = 0; // 襲来イベントで生成されたハエの数
-const RAID_FLY_TOTAL = 15; // 襲来イベントのハエの総数
+const RAID_FLY_MAX = 5;             // 同時に存在できる最大数
+const RAID_FLY_DEFEAT_TARGET = 15;  // 倒すとクリアになる数
+
+let raidFlyDefeated = 0;            // 襲来イベント中に倒した累計数
+
 const flies = [];
 for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
     createFly();
@@ -1262,7 +1264,6 @@ startButton.addEventListener("click", () => {
         raidBannerTimer = 0;
         raidClearBannerTimer = 0;
         raidFlyDefeated = 0;
-        raidFlySpawned = 0;
         raidBanner.style.display = "none";
         raidClearBanner.style.display = "none";
 
@@ -1559,18 +1560,19 @@ function clicked(flyObj) {
         raidFlyDefeated++;
 
         // すべて倒した
-        if (raidFlyDefeated >= RAID_FLY_TOTAL) {
+        if (raidFlyDefeated >= RAID_FLY_DEFEAT_TARGET) {
+            flies.forEach(fly => fly.el.remove());
+            flies.length = 0;
             survivalState = "raidClearBanner";
             raidClearBannerTimer = 0;
 
             raidFlyDefeated = 0;
-            raidFlySpawned = 0;
 
             raidClearBanner.style.display = "flex";
-        } else {
-            // 次のハエを生成
-            createFly();
-            raidFlySpawned++;
+        } else if (flies.length < RAID_FLY_MAX) {
+            for (let i = 0; i < RAID_FLY_MAX - flies.length; i++) {
+                createFly();
+            }
         }
     } else {
         // 通常時は常に新しいハエを生成
@@ -2123,12 +2125,9 @@ setInterval(() => {
                 if (raidBannerTimer >= RAID_BANNER_DURATION) {
                     raidBanner.style.display = "none";
 
-                    raidFlyDefeated = 0;
-                    raidFlySpawned = 0;
-
-                    // 最初のハエを生成
-                    createFly();
-                    raidFlySpawned++;
+                    for (let i = 0; i < RAID_FLY_MAX - flies.length; i++) {
+                        createFly();
+                    }
 
                     survivalState = "flyRaid";
                 }
@@ -2137,6 +2136,10 @@ setInterval(() => {
 
                 if (raidClearBannerTimer >= RAID_CLEAR_BANNER_DURATION) {
                     raidClearBanner.style.display = "none";
+
+                    for (let i = 0; i < INITIAL_FLY_COUNT - flies.length; i++) {
+                        createFly();
+                    }
 
                     survivalState = "normal";
 
@@ -2178,8 +2181,12 @@ setInterval(() => {
                     }
                     // DOMから削除
                     fly.el.remove();
-                    // 新しいハエを生成
-                    createFly();
+                    if (survivalState === "flyRaid") {
+                        for (let i = 0; i < RAID_FLY_MAX - flies.length; i++) {
+                            createFly();
+                        }
+                    } else createFly();
+                    
                     eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
                 }
             }
@@ -2220,14 +2227,14 @@ setInterval(() => {
     updateFlies(deltaTime);
     updateFlappyChar(scoreVel, deltaTime);
     updateBackground(score);
-    drawStars(deltaTime);
     drawFlappyGround(score);
     drawFlappyScore(score);
     drawHighLine();
     drawBestLine();
 
-    if (!(gameState === "playing" && gameMode === "survival" && survivalState === "raidBanner")) {
+    if (!(gameState === "playing" && gameMode === "survival" && (survivalState === "raidBanner" || survivalState === "raidClearBanner"))) {
         updateZoom(deltaTime);
+        drawStars(deltaTime);
         spawnWind(scoreVel, deltaTime);
         drawWind(scoreVel, deltaTime);
     }
