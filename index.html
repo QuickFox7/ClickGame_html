@@ -1585,7 +1585,8 @@ function clicked(flyObj) {
 
             raidClearBanner.style.display = "flex";
         } else if (flies.length < RAID_FLY_MAX) {
-            for (let i = 0; i < RAID_FLY_MAX - flies.length; i++) {
+            const fliesToCreate = RAID_FLY_MAX - flies.length;
+            for (let i = 0; i < fliesToCreate; i++) {
                 createFly();
             }
         }
@@ -2161,7 +2162,8 @@ setInterval(() => {
                 if (raidBannerTimer >= RAID_BANNER_DURATION) {
                     raidBanner.style.display = "none";
 
-                    for (let i = 0; i < RAID_FLY_MAX - flies.length; i++) {
+                    const fliesToCreate = RAID_FLY_MAX - flies.length;
+                    for (let i = 0; i < fliesToCreate; i++) {
                         createFly();
                     }
 
@@ -2173,7 +2175,8 @@ setInterval(() => {
                 if (raidClearBannerTimer >= RAID_CLEAR_BANNER_DURATION) {
                     raidClearBanner.style.display = "none";
 
-                    for (let i = 0; i < INITIAL_FLY_COUNT - flies.length; i++) {
+                    const fliesToCreate = INITIAL_FLY_COUNT - flies.length;
+                    for (let i = 0; i < fliesToCreate; i++) {
                         createFly();
                     }
 
@@ -2218,11 +2221,13 @@ setInterval(() => {
                     // DOMから削除
                     fly.el.remove();
                     if (survivalState === "flyRaid") {
-                        for (let i = 0; i < RAID_FLY_MAX - flies.length; i++) {
+                        const fliesToCreate = RAID_FLY_MAX - flies.length;
+                        for (let i = 0; i < fliesToCreate; i++) {
                             createFly();
                         }
-                    } else createFly();
-                    
+                    } else {
+                        createFly();
+                    }
                     eatDisplayCtx.clearRect(0, 0, eatDisplayCanvas.width, eatDisplayCanvas.height);
                 }
             }
