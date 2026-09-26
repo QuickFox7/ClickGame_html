@@ -1298,6 +1298,7 @@ function removeAllFlies() {
 
 function goHome() {
     gameState = "title";
+    survivalState = "normal";
     titleScreen.style.display = "flex";
     resultScreen.style.display = "none";
     timer.style.display = "none";
@@ -1782,11 +1783,13 @@ function updateRaidFlyMovement(dt) {
 }
 
 function updateFlies(dt) {
-    if (gameState === "playing" && gameMode === "survival" && survivalState === "flyRaid") {
+    if (gameState === "result") return; // リザルト画面ではハエの動きを止める
+
+    if (gameMode === "survival" && survivalState === "flyRaid") {
             updateRaidFlyMovement(dt);
-        } else {
-            updateNormalFlyMovement(dt);
-        }
+    } else {
+        updateNormalFlyMovement(dt);
+    }
 
     for (const fly of flies) {
         if (fly.state === "eating") {
