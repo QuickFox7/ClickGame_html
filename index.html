@@ -1250,11 +1250,11 @@ const hitPointIcon = document.getElementById("hitPointIcon");
 
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
-    previousBestScore = bestScores[gameMode];
-    runBestScore = 0;
     gameState = "playing";
     titleScreen.style.display = "none";
     gameMode = modes[modeIndex].id;
+    previousBestScore = bestScores[gameMode];
+    runBestScore = 0;
     if (gameMode === "timeAttack") {
         remainTime = 60;
         timerGauge.style.strokeDashoffset = 0;
