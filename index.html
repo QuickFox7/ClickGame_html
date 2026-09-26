@@ -1250,6 +1250,8 @@ const hitPointIcon = document.getElementById("hitPointIcon");
 
 const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
+    previousBestScore = bestScores[gameMode];
+    runBestScore = 0;
     gameState = "playing";
     titleScreen.style.display = "none";
     gameMode = modes[modeIndex].id;
@@ -1287,6 +1289,13 @@ document.querySelectorAll(".homeButton")
         button.addEventListener("click", goHome);
     });
 
+function removeAllFlies() {
+    for (const fly of flies) {
+        fly.el.remove();
+    }
+    flies.length = 0;
+}
+
 function goHome() {
     gameState = "title";
     titleScreen.style.display = "flex";
@@ -1295,6 +1304,12 @@ function goHome() {
     hitPointContainer.style.display = "none";
     runBestScore = 0;
     updateModeDisplay();
+
+    removeAllFlies();
+    for (let i = 0; i < INITIAL_FLY_COUNT; i++) {
+        createFly();
+    }
+
     requestAnimationFrame(() => {
         gameContainer.style.height = "100vh";
         flappyContainer.style.height = "0";
@@ -1306,6 +1321,7 @@ const frameRate = 60 // 毎秒
 let lastTime = Date.now(); // フレーム間の正確な時間測定用
 
 let score = 0; // 現在のスコア
+let previousBestScore = 0; // 過去のベストスコア
 let runBestScore = 0; // この回のベストスコア
 const bestScores = {
     endless: 0,
@@ -1561,8 +1577,7 @@ function clicked(flyObj) {
 
         // すべて倒した
         if (raidFlyDefeated >= RAID_FLY_DEFEAT_TARGET) {
-            flies.forEach(fly => fly.el.remove());
-            flies.length = 0;
+            removeAllFlies();
             survivalState = "raidClearBanner";
             raidClearBannerTimer = 0;
 
@@ -2118,8 +2133,8 @@ setInterval(() => {
             document.getElementById("resultScore").textContent =
                 `SCORE : ${Math.floor(runBestScore)}`;
             document.getElementById("resultBest").textContent =
-                `過去のベストスコア : ${Math.floor(bestScores[gameMode])}`;
-            if (runBestScore >= bestScores[gameMode]) {
+                `今までのベストスコア : ${Math.floor(bestScores[gameMode])}`;
+            if (runBestScore > previousBestScore) {
                 document.getElementById("resultNewRecord").style.display = "block";
             } else {
                 document.getElementById("resultNewRecord").style.display = "none";
@@ -2132,8 +2147,7 @@ setInterval(() => {
             if (survivalState === "normal") {
                 timeSinceLastRaid += deltaTime;　// 次の襲来までの時間を進める
                 if (timeSinceLastRaid >= RAID_INTERVAL) {
-                    flies.forEach(fly => fly.el.remove());
-                    flies.length = 0;
+                    removeAllFlies();
                     // バナー表示へ
                     survivalState = "raidBanner";
                     // バナー用タイマーをリセット
@@ -2222,8 +2236,8 @@ setInterval(() => {
             document.getElementById("resultScore").textContent =
                 `SCORE : ${Math.floor(runBestScore)}`;
             document.getElementById("resultBest").textContent =
-                `過去のベストスコア : ${Math.floor(bestScores[gameMode])}`;
-            if (runBestScore >= bestScores[gameMode]) {
+                `今までのベストスコア : ${Math.floor(bestScores[gameMode])}`;
+            if (runBestScore > previousBestScore) {
                 document.getElementById("resultNewRecord").style.display = "block";
             } else {
                 document.getElementById("resultNewRecord").style.display = "none";
