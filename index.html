@@ -1422,13 +1422,57 @@ function drawWind(scoreVel, deltaTime) {
 }
 
 // ボタンをランダム位置へ動かす関数
-function setRandomPosition(flyObj) {
+function setRandomPosition(flyObj, avoidWatermelon = false) {
 
     const maxX = gameContainer.clientWidth - flyObj.el.offsetWidth - 10;
     const maxY = gameContainer.clientHeight - flyObj.el.offsetHeight - 10;
 
-    const x = Math.random() * maxX;
-    const y = Math.random() * maxY;
+    let x;
+    let y;
+
+    if (avoidWatermelon) {
+        const melonRect = watermelon.getBoundingClientRect();
+        const gameRect = gameContainer.getBoundingClientRect();
+
+        const melonX =
+            melonRect.left - gameRect.left + melonRect.width / 2;
+        const melonY =
+            melonRect.top - gameRect.top + melonRect.height / 2;
+
+        // スイカから画面端までの最短距離
+        const distanceToEdge = Math.min(
+            melonX,
+            gameContainer.clientWidth - melonX,
+            melonY,
+            gameContainer.clientHeight - melonY
+        );
+
+        // スイカから、この距離の半分より外側に配置
+        const minDistance = distanceToEdge / 2;
+
+        const maxAttempts = 50;
+
+        for (let i = 0; i < maxAttempts; i++) {
+            x = Math.random() * maxX;
+            y = Math.random() * maxY;
+
+            const flyX = x + flyObj.el.offsetWidth / 2;
+            const flyY = y + flyObj.el.offsetHeight / 2;
+
+            const distance = Math.hypot(
+                flyX - melonX,
+                flyY - melonY
+            );
+
+            if (distance >= minDistance) {
+                break;
+            }
+        }
+
+    } else {
+        x = Math.random() * maxX;
+        y = Math.random() * maxY;
+    }
 
     flyObj.x = x;
     flyObj.y = y;
@@ -1588,7 +1632,7 @@ function clicked(flyObj) {
         } else if (flies.length < RAID_FLY_MAX) {
             const fliesToCreate = RAID_FLY_MAX - flies.length;
             for (let i = 0; i < fliesToCreate; i++) {
-                createFly();
+                createFly(true);
             }
         }
     } else {
@@ -1619,7 +1663,7 @@ function clicked(flyObj) {
     // ズームを元に戻す処理は updateZoom()
 }
 
-function createFly() {
+function createFly(avoidWatermelon = false) {
     const flyEl = document.createElement("img");
     flyEl.src = "realisticFly.png";
     flyEl.className = "fly";
@@ -1647,7 +1691,7 @@ function createFly() {
     flies.push(flyObj);
 
     // ランダム配置
-    setRandomPosition(flyObj);
+    setRandomPosition(flyObj, avoidWatermelon);
 }
 
 // updateFlies() 内で、状態に応じて動き方を変えるための遷移ルール
@@ -2167,7 +2211,7 @@ setInterval(() => {
 
                     const fliesToCreate = RAID_FLY_MAX - flies.length;
                     for (let i = 0; i < fliesToCreate; i++) {
-                        createFly();
+                        createFly(true); // 襲来時はスイカの近くに出ないようにする
                     }
 
                     survivalState = "flyRaid";
@@ -2180,7 +2224,7 @@ setInterval(() => {
 
                     const fliesToCreate = INITIAL_FLY_COUNT - flies.length;
                     for (let i = 0; i < fliesToCreate; i++) {
-                        createFly();
+                        createFly(true);
                     }
 
                     survivalState = "normal";
@@ -2226,7 +2270,7 @@ setInterval(() => {
                     if (survivalState === "flyRaid") {
                         const fliesToCreate = RAID_FLY_MAX - flies.length;
                         for (let i = 0; i < fliesToCreate; i++) {
-                            createFly();
+                            createFly(true);
                         }
                     } else {
                         createFly();
