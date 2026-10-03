@@ -264,6 +264,31 @@
             z-index: 50;
         }
 
+        .toughFly {
+            width: 72px;
+            height: 72px;
+        }
+
+        .flyHPBar {
+            position: absolute;
+            width: 72px;
+            height: 7px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid white;
+            border-radius: 5px;
+            box-sizing: border-box;
+            z-index: 51;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .flyHPBarFill {
+            width: 100%;
+            height: 100%;
+            background: #ff3333;
+            transition: width 0.1s linear;
+        }
+
         .flyClone{
             position: absolute;
             width: 65px;
@@ -1292,6 +1317,9 @@ document.querySelectorAll(".homeButton")
 function removeAllFlies() {
     for (const fly of flies) {
         fly.el.remove();
+        if (fly.hitPointBar) {
+            fly.hitPointBar.remove();
+        }
     }
     flies.length = 0;
 }
@@ -1479,6 +1507,13 @@ function setRandomPosition(flyObj, avoidWatermelon = false) {
 
     flyObj.el.style.left = x + "px"; /* インラインCSSでスタイル「left: 〇〇px;」を指定 */
     flyObj.el.style.top = y + "px";
+
+    if (flyObj.hitPointBar) {
+        flyObj.hitPointBar.style.left =
+            (x + (flyObj.el.offsetWidth - flyObj.hitPointBar.offsetWidth) / 2) + "px";
+        flyObj.hitPointBar.style.top =
+            (y - flyObj.hitPointBar.offsetHeight - 5) + "px";
+    }
 }
 
 function showComboText(x, y, combo) {
@@ -1519,9 +1554,9 @@ function showComboText(x, y, combo) {
     setTimeout(() => comboText.remove(), 1000);
 }
 
-function showCatPaw(x, y, flyObj) {
+function showCatPaw(x, y, flyObj, isToughFly) {
     const flyClone = document.createElement("img")
-    flyClone.src = "realisticFly.png";
+    flyClone.src = isToughFly ? "toughFly.png" : "realisticFly.png";
     flyClone.className = "flyClone";
     const paw = document.createElement("img");
     paw.src = "catHand.png";
@@ -1595,6 +1630,28 @@ function updateZoom(deltaTime) {
 // クリックされたらスコアアップ＋移動
 function clicked(flyObj) {
     const now = Date.now();
+
+    // toughFly は1クリックでは倒れず、HPだけ減らす
+    if (flyObj.isToughFly) {
+        flyObj.hp--;
+
+        if (flyObj.hitPointBar) {
+            const ratio = Math.max(0, flyObj.hp / flyObj.maxHp);
+            flyObj.hitPointBarFill.style.width = `${ratio * 100}%`;
+        }
+
+        // まだHPが残っている場合は、クリック演出だけで終了
+        if (flyObj.hp > 0) {
+            showCatPaw(
+                flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
+                flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
+                flyObj,
+                flyObj.isToughFly
+            );
+            return;
+        }
+    }
+
     if (combo >= 1) {
         showComboText(
             flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
@@ -1602,10 +1659,12 @@ function clicked(flyObj) {
             combo + 1 // comboが増える前の処理なので +1
         );
     }
+
     showCatPaw(
         flyObj.el.offsetLeft + flyObj.el.offsetWidth / 2,
         flyObj.el.offsetTop + flyObj.el.offsetHeight / 2,
-        flyObj
+        flyObj,
+        flyObj.isToughFly
     );
 
     // 配列から削除
@@ -1616,6 +1675,9 @@ function clicked(flyObj) {
 
     // DOMから削除
     flyObj.el.remove();
+    if (flyObj.hitPointBar) {
+        flyObj.hitPointBar.remove();
+    }
 
     if (gameMode === "survival" && survivalState === "flyRaid") {
         raidFlyDefeated++;
@@ -1651,7 +1713,7 @@ function clicked(flyObj) {
             scoreVel + Math.floor(Math.pow(combo, 1/10)*9.8),
             gravity*10
         )
-    )
+    );
 
     lastClickTime = now;
 
@@ -1664,9 +1726,11 @@ function clicked(flyObj) {
 }
 
 function createFly(avoidWatermelon = false) {
+    const isToughFly = Math.random() < 0.05;
+
     const flyEl = document.createElement("img");
-    flyEl.src = "realisticFly.png";
-    flyEl.className = "fly";
+    flyEl.src = isToughFly ? "toughFly.png" : "realisticFly.png";
+    flyEl.className = isToughFly ? "fly toughFly" : "fly";
 
     const flyObj = {
         x: 0, // leftのpx値
@@ -1679,8 +1743,27 @@ function createFly(avoidWatermelon = false) {
         isOnWatermelon: false,
         timeOnWatermelon: 0,
 		speckTimer: 0, // 果汁エフェクトの間隔
-        el: flyEl
+        isToughFly: isToughFly,
+        hp: isToughFly ? 2 : 1,
+        maxHp: isToughFly ? 2 : 1,
+        el: flyEl,
+        hitPointBar: null,
+        hitPointBarFill: null
     };
+
+    if (isToughFly) {
+        const hitPointBar = document.createElement("div");
+        hitPointBar.className = "flyHPBar";
+
+        const hitPointBarFill = document.createElement("div");
+        hitPointBarFill.className = "flyHPBarFill";
+
+        hitPointBar.appendChild(hitPointBarFill);
+        gameContainer.appendChild(hitPointBar);
+
+        flyObj.hitPointBar = hitPointBar;
+        flyObj.hitPointBarFill = hitPointBarFill;
+    }
 
     // イベント登録
     flyEl.addEventListener("click", () => {
@@ -1852,6 +1935,14 @@ function updateFlies(dt) {
 
         fly.el.style.left = fly.x + "px";
         fly.el.style.top = fly.y + "px";
+
+        if (fly.hitPointBar) {
+            fly.hitPointBar.style.left =
+                (fly.x + (fly.el.offsetWidth - fly.hitPointBar.offsetWidth) / 2) + "px";
+            fly.hitPointBar.style.top =
+                (fly.y - fly.hitPointBar.offsetHeight - 5) + "px";
+        }
+
         const wobble =
             fly.state === "moving" ? Math.sin(fly.t * 50) * 0.1 :
             fly.state === "turning" ? Math.sin(fly.t * 50) * 0.05 :
@@ -2267,6 +2358,9 @@ setInterval(() => {
                     }
                     // DOMから削除
                     fly.el.remove();
+                    if (fly.hitPointBar) {
+                        fly.hitPointBar.remove();
+                    }
                     if (survivalState === "flyRaid") {
                         const fliesToCreate = RAID_FLY_MAX - flies.length;
                         for (let i = 0; i < fliesToCreate; i++) {
